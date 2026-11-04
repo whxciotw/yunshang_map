@@ -224,8 +224,8 @@ function ysBuildDeviceRow(entityId, stateObj) {
     };
 }
 
-/** 轨迹动画使用的移动标记内容（使用实体图标/图片，而不是小汽车图标） */
-function ysTrackMarkerHtml(icon) {
+/** 轨迹动画使用的移动标记内容（实体图标/图片 + 可选颜色边框，多设备时用于区分） */
+function ysTrackMarkerHtml(icon, color) {
     var iconHtml;
     if (icon && icon.kind === "picture" && icon.picture) {
         iconHtml = '<img class="ys-track-picture" src="' + escapeHtml(icon.picture) + '" alt="">';
@@ -234,5 +234,7 @@ function ysTrackMarkerHtml(icon) {
         iconHtml = '<svg class="ys-track-svg" viewBox="0 0 24 24" aria-hidden="true">' +
             '<path d="' + path + '"/></svg>';
     }
-    return '<div class="ys-track-marker"><div class="ys-track-marker-badge">' + iconHtml + '</div></div>';
+    var style = color ? ' style="border-color:' + escapeHtml(color) + '"' : "";
+    return '<div class="ys-track-marker"><div class="ys-track-marker-badge"' + style + '>' +
+        iconHtml + '</div></div>';
 }

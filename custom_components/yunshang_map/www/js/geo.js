@@ -106,12 +106,17 @@
         );
     }
 
-    /** 平面近似距离（米） */
+    /** 平面近似距离（米）；兼容 {lon,lat} 与 {lng,lat} 两种写法 */
     function distanceMeters(a, b) {
         var R = 6371000;
         var rad = PI / 180;
+        var aLng = (a.lon !== undefined) ? a.lon : a.lng;
+        var bLng = (b.lon !== undefined) ? b.lon : b.lng;
+        if (aLng === undefined || bLng === undefined || a.lat === undefined || b.lat === undefined) {
+            return 0;
+        }
         var dLat = (b.lat - a.lat) * rad;
-        var dLng = (b.lng - a.lng) * rad;
+        var dLng = (bLng - aLng) * rad;
         var x = dLng * Math.cos((a.lat + b.lat) / 2 * rad);
         return Math.sqrt(dLat * dLat + x * x) * R;
     }

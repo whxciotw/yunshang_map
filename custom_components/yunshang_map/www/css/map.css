@@ -787,6 +787,41 @@ html[data-theme="dark"] .ys-state-zone {
     color: #dc2626;
 }
 
+/* 轨迹播放控制（两个按钮，文字统一为 2 个字） */
+.ys-playback-actions {
+    gap: 8px;
+}
+
+.ys-playback-actions .ys-btn {
+    flex: 1 1 0;
+    letter-spacing: 2px;
+}
+
+.ys-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+/* 轨迹页签：多选设备颜色圆点 */
+.ys-track-color {
+    flex: 0 0 auto;
+    width: 10px;
+    height: 10px;
+    display: none;
+    border-radius: 50%;
+    margin-right: 2px;
+    box-shadow: 0 0 0 2px var(--ys-panel);
+}
+
+.ys-track-row.is-active .ys-track-color {
+    display: block;
+}
+
+/* 抽屉拖动时关闭过渡，避免跟手性差 */
+.ys-panel-card.is-dragging {
+    transition: none !important;
+}
+
 /* 回家路线多选 */
 .ys-check-list {
     display: flex;
@@ -1587,8 +1622,8 @@ html[data-theme="dark"] .ys-track-marker-badge {
         top: auto;
         bottom: 0;
         width: 100%;
-        max-height: 86vh;
-        max-height: 86dvh;
+        max-height: 92vh;
+        max-height: 92dvh;
         border-radius: 18px 18px 0 0;
         border-bottom: none;
         transform: translateY(100%);
@@ -1602,7 +1637,7 @@ html[data-theme="dark"] .ys-track-marker-badge {
 
     .ys-panel-header {
         cursor: default;
-        padding-top: 12px;
+        padding: 10px 12px 6px;
         position: relative;
     }
 
@@ -1618,39 +1653,45 @@ html[data-theme="dark"] .ys-track-marker-badge {
         background: var(--ys-border);
     }
 
+    .ys-panel-title {
+        font-size: 16px;
+    }
+
     .ys-panel-body {
-        padding: 8px 12px 4px;
+        padding: 6px 10px 2px;
     }
 
     .ys-tabs {
-        padding: 2px 12px 0;
+        padding: 2px 10px 0;
         gap: 4px;
     }
 
     .ys-tab {
-        height: 42px;
+        height: 40px;
         font-size: 13px;
     }
 
     .ys-device-row {
-        padding: 10px 8px;
-        gap: 10px;
-        min-height: 56px;
-        border-radius: 12px;
+        padding: 8px;
+        gap: 9px;
+        min-height: 50px;
+        border-radius: 11px;
     }
 
     .ys-avatar {
-        flex: 0 0 38px;
-        width: 38px;
-        height: 38px;
+        flex: 0 0 34px;
+        width: 34px;
+        height: 34px;
     }
 
     .ys-device-name {
-        font-size: 14px;
+        font-size: 13.5px;
+        line-height: 19px;
     }
 
     .ys-device-sub {
-        font-size: 11.5px;
+        font-size: 11px;
+        margin-top: 1px;
     }
 
     .ys-device-actions {
@@ -1658,8 +1699,12 @@ html[data-theme="dark"] .ys-track-marker-badge {
     }
 
     .ys-icon-btn {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .ys-panel-card {
+        transition: transform .22s ease, height .18s ease;
     }
 
     .ys-scroll-list {
@@ -1712,6 +1757,13 @@ html[data-theme="dark"] .ys-track-marker-badge {
         bottom: calc(12px + env(safe-area-inset-bottom));
     }
 
+    /* 抽屉打开时隐藏底部工具栏，界面更干净 */
+    body.ys-panel-open #dock {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .15s ease;
+    }
+
     #dock img {
         width: 36px;
         height: 36px;
@@ -1719,6 +1771,56 @@ html[data-theme="dark"] .ys-track-marker-badge {
 
     .ys-theme-panel {
         bottom: calc(60px + env(safe-area-inset-bottom));
+    }
+}
+
+/* 横屏手机 / 折叠屏半开（矮而宽）：改为左侧固定侧栏，比底部抽屉保留更多地图 */
+@media (max-height: 520px) and (min-width: 600px) {
+    .ys-panel-card {
+        left: 0;
+        right: auto;
+        top: 0;
+        bottom: 0;
+        width: min(392px, 84vw);
+        height: 100%;
+        max-height: 100%;
+        border-radius: 0 16px 16px 0;
+        border-right: none;
+        border-bottom: 1px solid var(--ys-border);
+        transform: translateX(-100%);
+        opacity: 1;
+        transition: transform .22s ease;
+    }
+
+    .ys-panel.is-open .ys-panel-card {
+        transform: none;
+    }
+
+    .ys-panel-header {
+        cursor: default;
+        padding-top: 12px;
+        padding-left: calc(12px + env(safe-area-inset-left));
+    }
+
+    .ys-panel-header::before {
+        display: none;
+    }
+
+    .ys-panel-body {
+        padding-left: calc(10px + env(safe-area-inset-left));
+    }
+
+    .ys-panel-footer {
+        padding-left: calc(14px + env(safe-area-inset-left));
+    }
+
+    .ys-panel-body {
+        padding-bottom: 6px;
+    }
+
+    .ys-scroll-list {
+        max-height: none;
+        overflow: visible;
     }
 }
 

@@ -22,7 +22,11 @@ var routeSelected = {};
 var searchKeyword = "";
 var activeDeviceId = null;   // 当前选中/定位设备
 var followDeviceId = null;   // 正在追踪（地图跟随）的设备
-var trackedDeviceId = null;  // 当前显示轨迹的设备
+var trackedDeviceId = null;  // 当前显示轨迹的设备（兼容旧状态）
+var trackSelected = {};      // 轨迹多选：{entityId: true}
+var trackSelectedOrder = []; // 选择顺序（决定轨迹颜色）
+var trackedDeviceIds = [];   // 已加载轨迹的设备
+var playbackState = "idle";  // idle | playing | paused
 var trackVisible = false;
 var backhomeTrackEnabled = false;
 var backhomeTrackType = "drive";
@@ -194,6 +198,10 @@ function bindUi() {
 
     /* 设备行：单击定位/选中，双击打开实体详情，按钮点击单独处理 */
     $(document).on("click", ".ys-device-row", function (event) {
+        /* 轨迹 / 回家路线页签的行由各自的 checkbox 处理，避免整表重绘时打断勾选 */
+        if ($(this).hasClass("ys-track-row") || $(this).hasClass("ys-route-row")) {
+            return;
+        }
         var id = $(this).attr("data-id");
         if (!id) {
             return;
@@ -227,30 +235,37 @@ function bindUi() {
         $(this).addClass("is-active");
     });
     $("#btnQuery").on("click", onTrackButtonClick);
-    $(document).on("click", "#trackDeviceList .ys-device-row", function () {
-        var id = $(this).attr("data-id");
+    $("#trackDeviceList").on("change", "input[type=checkbox]", function () {
+        var id = $(this).val();
         if (!id) {
             return;
         }
-        selectDevice(id, true);
+        if (this.checked) {
+            trackSelected[id] = true;
+            if (trackSelectedOrder.indexOf(id) < 0) {
+                trackSelectedOrder.push(id);
+            }
+        } else {
+            delete trackSelected[id];
+            trackSelectedOrder = trackSelectedOrder.filter(function (item) {
+                return item !== id;
+            });
+        }
+        $(this).closest(".ys-track-row").toggleClass("is-active", this.checked);
+        updateTrackColorDots();
+        SaveState();
         if (trackVisible) {
-            loadTrack(id);
+            loadSelectedTracks();
         }
     });
     $(document).on("click", "#trackSpeed [data-speed]", function () {
         setTrackSpeed(parseFloat($(this).attr("data-speed")));
     });
-    $("#btnDrawStart").on("click", function () {
-        map.DrawStart();
+    $("#btnPlayPause").on("click", function () {
+        togglePlayPause();
     });
-    $("#btnDrawPause").on("click", function () {
-        map.DrawPause();
-    });
-    $("#btnDrawResume").on("click", function () {
-        map.DrawResume();
-    });
-    $("#btnDrawStop").on("click", function () {
-        map.DrawStop();
+    $("#btnStopPlay").on("click", function () {
+        stopPlayback();
     });
 
     /* 回家路线页签 */
@@ -326,6 +341,7 @@ function openPanel() {
     var panel = document.getElementById("devicePanel");
     panel.hidden = false;
     panelVisible = true;
+    document.body.classList.add("ys-panel-open");
     layoutPanel();
     requestAnimationFrame(function () {
         panel.classList.add("is-open");
@@ -337,6 +353,7 @@ function openPanel() {
 function closePanel() {
     var panel = document.getElementById("devicePanel");
     panelVisible = false;
+    document.body.classList.remove("ys-panel-open");
     panel.classList.remove("is-open");
     setTimeout(function () {
         if (!panelVisible) {
@@ -373,13 +390,21 @@ function switchTab(tab) {
     }
 }
 
+function isSheetMode() {
+    return window.innerWidth <= 560 || window.innerHeight <= 520;
+}
+
+function isSidePanelMode() {
+    return window.innerHeight <= 520 && window.innerWidth >= 600;
+}
+
 function layoutPanel() {
     var panel = document.getElementById("devicePanel");
     var card = panel.querySelector(".ys-panel-card");
     if (!card) {
         return;
     }
-    if (window.innerWidth <= 560) {
+    if (isSheetMode()) {
         card.style.width = "";
         card.style.height = "";
         card.style.left = "";
@@ -392,7 +417,7 @@ function onViewportChange() {
     layoutPanel();
 }
 
-/* 桌面端拖动面板（移动端为底部抽屉，不拖动） */
+/* 手机底部抽屉：拖动调节高度 / 轻点收起展开；桌面端：拖动移动浮窗 */
 function initPanelDrag() {
     var panel = document.getElementById("devicePanel");
     var card = panel.querySelector(".ys-panel-card");
@@ -402,20 +427,36 @@ function initPanelDrag() {
     var startY = 0;
     var startLeft = 0;
     var startTop = 0;
+    var sheetDrag = null;
 
     header.addEventListener("pointerdown", function (event) {
-        if (window.innerWidth <= 560) {
+        if ($(event.target).closest("button").length) {
             return;
         }
-        if ($(event.target).closest("button").length) {
+        if (isSheetMode()) {
+            if (isSidePanelMode()) {
+                return; /* 横屏侧栏固定，不拖动 */
+            }
+            var rect = card.getBoundingClientRect();
+            sheetDrag = {
+                startY: event.clientY,
+                startH: rect.height,
+                moved: false
+            };
+            card.classList.add("is-dragging");
+            try {
+                header.setPointerCapture(event.pointerId);
+            } catch (e) {
+                /* 忽略 */
+            }
             return;
         }
         dragging = true;
         startX = event.clientX;
         startY = event.clientY;
-        var rect = card.getBoundingClientRect();
-        startLeft = rect.left;
-        startTop = rect.top;
+        var cardRect = card.getBoundingClientRect();
+        startLeft = cardRect.left;
+        startTop = cardRect.top;
         card.classList.add("is-dragging");
         try {
             header.setPointerCapture(event.pointerId);
@@ -425,6 +466,17 @@ function initPanelDrag() {
     });
 
     header.addEventListener("pointermove", function (event) {
+        if (sheetDrag) {
+            var dy = event.clientY - sheetDrag.startY;
+            if (Math.abs(dy) > 4) {
+                sheetDrag.moved = true;
+            }
+            var vh = window.innerHeight;
+            var h = sheetDrag.startH - dy;
+            h = Math.max(vh * 0.26, Math.min(h, vh - 8));
+            card.style.height = Math.round(h) + "px";
+            return;
+        }
         if (!dragging) {
             return;
         }
@@ -438,12 +490,40 @@ function initPanelDrag() {
     });
 
     function endDrag() {
+        if (sheetDrag) {
+            var vh = window.innerHeight;
+            var h = card.getBoundingClientRect().height;
+            card.classList.remove("is-dragging");
+            if (h < vh * 0.30) {
+                /* 拖到底部：关闭 */
+                closePanel();
+                card.style.height = "";
+            } else if (sheetDrag.moved) {
+                /* 吸附到 45% / 68% / 90% 三档 */
+                var snaps = [vh * 0.45, vh * 0.68, vh * 0.90];
+                var best = snaps[0];
+                for (var si = 1; si < snaps.length; si++) {
+                    if (Math.abs(snaps[si] - h) < Math.abs(best - h)) {
+                        best = snaps[si];
+                    }
+                }
+                card.style.height = Math.round(best) + "px";
+            } else {
+                /* 轻点把手：展开 / 收起切换 */
+                card.style.height = (h > vh * 0.72)
+                    ? Math.round(vh * 0.45) + "px"
+                    : Math.round(vh * 0.90) + "px";
+            }
+            sheetDrag = null;
+            return;
+        }
         if (!dragging) {
             return;
         }
         dragging = false;
         card.classList.remove("is-dragging");
     }
+
     header.addEventListener("pointerup", endDrag);
     header.addEventListener("pointercancel", endDrag);
 }
@@ -589,7 +669,7 @@ function selectDevice(deviceId, locate) {
         return;
     }
     activeDeviceId = deviceId;
-    updateTrackSelectSelection(deviceId);
+    renderTrackDeviceList();
     if (locate && hasPosition(deviceStore[deviceId])) {
         map.center({ lon: deviceStore[deviceId].lon, lat: deviceStore[deviceId].lat });
     }
@@ -625,7 +705,7 @@ function toggleFollow(deviceId) {
             map.center({ lon: device.lon, lat: device.lat });
         }
         ysToast("正在追踪「" + device.name + "」，地图将跟随其位置");
-        updateTrackSelectSelection(deviceId);
+        renderTrackDeviceList();
     }
     renderDeviceList(true);
     SaveState();
@@ -779,34 +859,50 @@ function renderTrackDeviceList() {
     if (!container) {
         return;
     }
-    /* 未选中设备时默认选中第一个有坐标的设备 */
-    if (!activeDeviceId || !deviceStore[activeDeviceId]) {
-        for (var di = 0; di < deviceOrder.length; di++) {
-            if (hasPosition(deviceStore[deviceOrder[di]])) {
-                activeDeviceId = deviceOrder[di];
-                break;
-            }
+    /* 清理已失效的选择 */
+    var cleanOrder = [];
+    for (var oi = 0; oi < trackSelectedOrder.length; oi++) {
+        var oid = trackSelectedOrder[oi];
+        if (trackSelected[oid] && deviceStore[oid]) {
+            cleanOrder.push(oid);
+        } else {
+            delete trackSelected[oid];
         }
     }
+    trackSelectedOrder = cleanOrder;
+
     var html = [];
     for (var i = 0; i < deviceOrder.length; i++) {
         var d = deviceStore[deviceOrder[i]];
         if (!d || !hasPosition(d)) {
             continue;
         }
-        var active = (activeDeviceId === d.id) || (trackVisible && trackedDeviceId === d.id);
-        var trailing = '<span class="ys-select-indicator' + (active ? " is-on" : "") +
-            '" aria-hidden="true">' + ysIcon(active ? "radiobox-marked" : "radiobox-blank") + '</span>';
-        html.push(deviceRowHtml(d, trailing, active ? "is-active" : ""));
+        var checked = !!trackSelected[d.id];
+        var colorDot = '<span class="ys-track-color" style="background:' +
+            (checked ? trackColorFor(d.id) : "transparent") + '" aria-hidden="true"></span>';
+        var checkbox = '<input class="ys-route-check" type="checkbox" value="' +
+            escapeHtml(d.id) + '"' + (checked ? " checked" : "") +
+            ' aria-label="选择 ' + escapeHtml(d.name) + '">';
+        html.push('<label class="ys-device-row ys-track-row' + (checked ? " is-active" : "") +
+            '" data-id="' + escapeHtml(d.id) + '">' +
+            deviceAvatarHtml(d) + deviceInfoHtml(d) + colorDot + checkbox + '</label>');
     }
     container.innerHTML = html.length ? html.join("") : '<div class="ys-hint">暂无可选设备</div>';
+    updatePlaybackUi();
 }
 
-function updateTrackSelectSelection(deviceId) {
-    if (deviceId) {
-        activeDeviceId = deviceId;
-    }
+function updateTrackSelectSelection() {
     renderTrackDeviceList();
+}
+
+/** 只更新轨迹颜色圆点（不重建列表，避免点击时 DOM 被替换） */
+function updateTrackColorDots() {
+    $("#trackDeviceList .ys-track-row").each(function () {
+        var id = $(this).attr("data-id");
+        var index = trackSelectedOrder.indexOf(id);
+        var color = index >= 0 ? DEVICE_COLORS[index % DEVICE_COLORS.length] : "transparent";
+        $(this).find(".ys-track-color").css("background", color);
+    });
 }
 
 function getTimeRange() {
@@ -877,21 +973,7 @@ function setTrackHint(text, isError) {
 
 function onTrackButtonClick() {
     if (!trackVisible) {
-        var id = activeDeviceId || trackedDeviceId;
-        if (!id || !deviceStore[id]) {
-            for (var fi = 0; fi < deviceOrder.length; fi++) {
-                if (hasPosition(deviceStore[deviceOrder[fi]])) {
-                    id = deviceOrder[fi];
-                    break;
-                }
-            }
-        }
-        if (!id || !deviceStore[id]) {
-            ysToast(t("noDeviceSelected"), true);
-            switchTab("devices");
-            return;
-        }
-        loadTrack(id);
+        loadSelectedTracks();
     } else {
         hideTrack();
     }
@@ -899,52 +981,156 @@ function onTrackButtonClick() {
 
 var trackRequestSeq = 0;
 
-function loadTrack(deviceId) {
-    var device = deviceStore[deviceId];
-    if (!device) {
+/** 当前选中的轨迹设备（按选择顺序） */
+function selectedTrackIds() {
+    var ids = [];
+    for (var i = 0; i < trackSelectedOrder.length; i++) {
+        var id = trackSelectedOrder[i];
+        if (trackSelected[id] && deviceStore[id] && hasPosition(deviceStore[id])) {
+            ids.push(id);
+        }
+    }
+    return ids;
+}
+
+function trackColorFor(id) {
+    var index = trackSelectedOrder.indexOf(id);
+    if (index < 0) {
+        index = 0;
+    }
+    return DEVICE_COLORS[index % DEVICE_COLORS.length];
+}
+
+/* 播放 / 暂停 / 停止 */
+function updatePlaybackUi() {
+    var play = $("#btnPlayPause");
+    var stop = $("#btnStopPlay");
+    play.text(playbackState === "playing" ? "暂停" : "播放");
+    stop.prop("disabled", playbackState === "idle");
+}
+
+function resetPlaybackUi() {
+    playbackState = "idle";
+    updatePlaybackUi();
+}
+
+function togglePlayPause() {
+    if (!trackVisible) {
         return;
     }
+    if (playbackState === "playing") {
+        map.DrawPause();
+        playbackState = "paused";
+    } else {
+        if (playbackState === "paused") {
+            map.DrawResume();
+        } else {
+            map.DrawStart();
+        }
+        playbackState = "playing";
+    }
+    updatePlaybackUi();
+}
+
+function stopPlayback() {
+    if (!trackVisible) {
+        return;
+    }
+    map.DrawStop();
+    resetPlaybackUi();
+    updateTrackHintText();
+}
+
+/** 一次加载并同时显示多个设备的轨迹 */
+function loadSelectedTracks() {
     if (!validTimeRange(true)) {
         return;
     }
-    /* 切换设备时先隐藏旧轨迹 */
-    if (trackVisible) {
-        map.DrawStop();
-        map.query(null, false);
-        trackVisible = false;
+    var ids = selectedTrackIds();
+    if (!ids.length) {
+        /* 默认选中第一个可用设备，方便直接查看 */
+        for (var fi = 0; fi < deviceOrder.length; fi++) {
+            if (hasPosition(deviceStore[deviceOrder[fi]])) {
+                trackSelected[deviceOrder[fi]] = true;
+                trackSelectedOrder = [deviceOrder[fi]];
+                renderTrackDeviceList();
+                ids = selectedTrackIds();
+                break;
+            }
+        }
     }
+    if (!ids.length) {
+        ysToast(t("noDeviceSelected"), true);
+        switchTab("devices");
+        return;
+    }
+    turnOffBackhomeRoutes();
     setTrackHint(t("trackLoading"));
     var seq = ++trackRequestSeq;
-    getLocationData(deviceId, function (points) {
+    var results = {};
+    var pending = ids.length;
+
+    function finalize() {
         if (seq !== trackRequestSeq) {
-            return; /* 已经切换到别的设备 */
+            return;
         }
-        if (!points || points.length === 0) {
+        var tracks = [];
+        var originalTotal = 0;
+        for (var k = 0; k < ids.length; k++) {
+            var id = ids[k];
+            var device = deviceStore[id];
+            var points = results[id] || [];
+            if (!device || points.length < 2) {
+                continue;
+            }
+            originalTotal += points.length;
+            tracks.push({
+                id: id,
+                name: device.name,
+                points: points,
+                iconInfo: deviceIconInfo(device),
+                color: trackColorFor(id)
+            });
+        }
+        if (!tracks.length) {
             setTrackHint(t("noTrackData"), true);
             ysToast(t("noTrackData"), true);
             trackVisible = false;
             $("#btnQuery").text(t("trackShow"));
             $("#playbackActions").attr("hidden", "hidden");
+            resetPlaybackUi();
             return;
         }
-        trackedDeviceId = deviceId;
-        trackVisible = true;
-        map.query(points, true, deviceIconInfo(device));
+        map.queryMulti(tracks, true);
         map.setTrackSpeed(trackSpeedMultiplier);
+        trackVisible = true;
+        trackedDeviceIds = ids.slice();
+        trackedDeviceId = ids[0] || null;
+        activeDeviceId = trackedDeviceId;
         $("#btnQuery").text(t("trackHide"));
         $("#playbackActions").removeAttr("hidden");
-        updateTrackSelectSelection(deviceId);
+        resetPlaybackUi();
         var info = map.getTrackInfo ? map.getTrackInfo() : null;
-        if (info && info.durationSec) {
-            lastTrackDuration = info.durationSec;
-        }
-        lastTrackOriginalCount = points.length;
-        lastTrackDrawnCount = info ? info.drawn : points.length;
-        updateTrackHintText(device);
-        activeDeviceId = deviceId;
+        lastTrackDuration = info && info.durationSec ? info.durationSec : 0;
+        lastTrackOriginalCount = originalTotal;
+        lastTrackDrawnCount = info ? info.drawn : originalTotal;
+        updateTrackHintText();
+        renderTrackDeviceList();
         renderDeviceList();
         SaveState();
-    });
+    }
+
+    for (var j = 0; j < ids.length; j++) {
+        (function (entityId) {
+            getLocationData(entityId, function (points) {
+                results[entityId] = points || [];
+                pending--;
+                if (pending === 0) {
+                    finalize();
+                }
+            });
+        })(ids[j]);
+    }
 }
 
 function setTrackSpeed(multiplier) {
@@ -957,15 +1143,31 @@ function setTrackSpeed(multiplier) {
     $("#trackSpeed [data-speed]").removeClass("is-active")
         .filter('[data-speed="' + m + '"]').addClass("is-active");
     SaveState();
-    if (trackVisible && trackedDeviceId && deviceStore[trackedDeviceId]) {
-        updateTrackHintText(deviceStore[trackedDeviceId]);
+    if (trackVisible) {
+        updateTrackHintText();
     }
 }
 
-function updateTrackHintText(device) {
-    var hint = "已加载「" + (device ? device.name : "") + "」的轨迹，共 " + lastTrackOriginalCount + " 个点";
+function updateTrackHintText() {
+    if (!trackVisible || !trackedDeviceIds.length) {
+        return;
+    }
+    var names = [];
+    for (var i = 0; i < trackedDeviceIds.length; i++) {
+        var device = deviceStore[trackedDeviceIds[i]];
+        if (device) {
+            names.push(device.name);
+        }
+    }
+    var hint = "已加载 " + trackedDeviceIds.length + " 个设备的轨迹";
+    if (names.length === 1) {
+        hint = "已加载「" + names[0] + "」的轨迹";
+    } else if (names.length > 1) {
+        hint += "（" + names.slice(0, 3).join("、") + (names.length > 3 ? " 等" : "") + "）";
+    }
+    hint += "，共 " + lastTrackOriginalCount + " 个点";
     if (lastTrackDrawnCount > 0 && lastTrackDrawnCount < lastTrackOriginalCount) {
-        hint += "（点较多，已抽样绘制 " + lastTrackDrawnCount + " 个点以保证流畅）";
+        hint += "（已抽样绘制 " + lastTrackDrawnCount + " 个点以保证流畅）";
     }
     var duration = map.getTrackDuration ? map.getTrackDuration() : lastTrackDuration;
     if (duration > 0) {
@@ -979,9 +1181,12 @@ function hideTrack() {
     map.query(null, false);
     trackVisible = false;
     trackedDeviceId = null;
+    trackedDeviceIds = [];
+    resetPlaybackUi();
     $("#btnQuery").text(t("trackShow"));
     $("#playbackActions").attr("hidden", "hidden");
     setTrackHint("");
+    renderTrackDeviceList();
     SaveState();
 }
 
@@ -1068,8 +1273,23 @@ function updateRouteHint() {
     $("#routeHint").text("已显示 " + count + " 个设备的回家路线");
 }
 
+/** 关闭回家路线显示（轨迹与回家路线同一时间只显示一种） */
+function turnOffBackhomeRoutes() {
+    if (!backhomeTrackEnabled) {
+        return;
+    }
+    backhomeTrackEnabled = false;
+    $("#btnBackhome").text(t("backShow"));
+    map.drawdrivingmarkerShow(false);
+    $("#routeHint").text("");
+    SaveState();
+}
+
 function onBackhomeButtonClick() {
     if (!backhomeTrackEnabled) {
+        if (trackVisible) {
+            hideTrack();
+        }
         var ids = [];
         for (var id in routeSelected) {
             if (routeSelected[id] && deviceStore[id] && hasPosition(deviceStore[id])) {
@@ -1152,6 +1372,13 @@ $(document).on("mapInitFinished", function () {
 
 $(document).on("themechange", function () {
     applyMapTheme();
+});
+
+$(document).on("trackAnimationEnd", function () {
+    if (trackVisible) {
+        playbackState = "finished";
+        updatePlaybackUi();
+    }
 });
 
 $(document).on("updateDrivingTime", function (event, params) {
@@ -1433,7 +1660,8 @@ function SaveState() {
         routeSelected: selected,
         hidden: hidden,
         tab: activeTab,
-        trackSpeed: trackSpeedMultiplier
+        trackSpeed: trackSpeedMultiplier,
+        trackSelected: trackSelectedOrder.slice()
     };
     try {
         storage.setItem(STORAGE_STATE, JSON.stringify(state));
@@ -1465,6 +1693,14 @@ function loadState() {
     if ($.isArray(state.hidden)) {
         for (var j = 0; j < state.hidden.length; j++) {
             hiddenIds[state.hidden[j]] = 1;
+        }
+    }
+    trackSelected = {};
+    trackSelectedOrder = [];
+    if ($.isArray(state.trackSelected)) {
+        for (var k = 0; k < state.trackSelected.length; k++) {
+            trackSelected[state.trackSelected[k]] = true;
+            trackSelectedOrder.push(state.trackSelected[k]);
         }
     }
     $("#backhomeMode button").removeClass("is-active")

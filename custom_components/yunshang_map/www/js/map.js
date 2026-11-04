@@ -36,6 +36,14 @@ MapController.prototype = {
         this.getMap().trackplayback(flag);
     },
 
+    /** 多设备轨迹：tracks = [{ id, name, points, iconInfo, color }] */
+    queryMulti: function (tracks, flag) {
+        if (flag && tracks && tracks.length > 0) {
+            this.getMap().queryMulti(tracks);
+        }
+        this.getMap().trackplayback(flag);
+    },
+
     DrawStart: function () {
         this.getMap().DrawStart();
     },

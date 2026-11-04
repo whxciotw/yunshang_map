@@ -705,127 +705,205 @@ MapLeaflet.prototype = {
         return !!this.state.flags.homepoint;
     },
 
-    /* ---------------- 轨迹回放 ---------------- */
+    /* ---------------- 轨迹回放（支持多设备同时播放） ---------------- */
 
     query: function (coordinate, iconInfo) {
-        var that = this;
-        if (!this.map || !coordinate || coordinate.length === 0) {
+        this.queryMulti([{
+            id: "single",
+            name: "",
+            points: coordinate || [],
+            iconInfo: iconInfo,
+            color: "#0022aa"
+        }], { fit: true });
+    },
+
+    queryMulti: function (tracks, options) {
+        if (!this.map || !tracks || !tracks.length) {
+            this._clearTrackLayers();
             return;
         }
+        var that = this;
+        options = options || {};
         this._stopTrackAnimation();
         this._clearTrackLayers();
 
-        var original = coordinate.length;
-        var maxPoints = 800;
-        var points = coordinate;
-        if (original > maxPoints) {
-            var step = Math.ceil(original / maxPoints);
-            points = [];
-            for (var i = 0; i < original; i += step) {
-                points.push(coordinate[i]);
-            }
-            if (points[points.length - 1] !== coordinate[original - 1]) {
-                points.push(coordinate[original - 1]);
-            }
-        }
-        this.lastTrackOriginal = original;
-        this.lastTrackInfo = { original: original, drawn: points.length, totalMeters: 0, durationSec: 0 };
+        var multi = tracks.length > 1;
+        var maxPointsPerTrack = multi ? 400 : 800;
+        var animTracks = [];
+        var bounds = L.latLngBounds([]);
+        var totalOriginal = 0;
+        var totalDrawn = 0;
+        var totalMetersAll = 0;
+        var maxBase = 5;
+        var palette = ["#1677ff", "#16a34a", "#f59e0b", "#7c3aed", "#dc2626", "#0891b2", "#ea580c", "#db2777"];
 
-        var latlngs = [];
-        var wgsPath = [];
-        var totalMeters = 0;
-        for (var k = 0; k < points.length; k++) {
-            var p = { lon: points[k].longitude, lat: points[k].latitude };
-            if (k > 0) {
-                totalMeters += YSGeo.distanceMeters(wgsPath[k - 1], p);
+        for (var t = 0; t < tracks.length; t++) {
+            var track = tracks[t] || {};
+            var source = track.points || [];
+            if (source.length < 2) {
+                continue;
             }
-            wgsPath.push(p);
-            latlngs.push(this._toLatLng(p));
-        }
-        var baseDuration = Math.min(20, Math.max(5, totalMeters / 1000 * 0.5));
-        this.trackLayers.line1 = L.polyline(latlngs, {
-            color: "#0022aa",
-            weight: 3,
-            opacity: 0.85,
-            interactive: false
-        }).addTo(this.map);
-        this.trackLayers.line2 = L.polyline([], {
-            color: "#ff2d2d",
-            weight: 3,
-            opacity: 0.95,
-            interactive: false
-        }).addTo(this.map);
+            var original = source.length;
+            totalOriginal += original;
 
-        var that2 = this;
-        var trackIcon = L.divIcon({
-            html: ysTrackMarkerHtml(iconInfo),
-            className: "ys-leaflet-track-marker",
-            iconSize: [40, 40],
-            iconAnchor: [20, 20]
-        });
-        this.trackLayers.marker = L.marker(latlngs[0], {
-            icon: trackIcon,
-            zIndexOffset: 2000,
-            interactive: false,
-            keyboard: false
-        }).addTo(this.map);
+            var points = source;
+            if (original > maxPointsPerTrack) {
+                var step = Math.ceil(original / maxPointsPerTrack);
+                points = [];
+                for (var i = 0; i < original; i += step) {
+                    points.push(source[i]);
+                }
+                if (points[points.length - 1] !== source[original - 1]) {
+                    points.push(source[original - 1]);
+                }
+            }
+            totalDrawn += points.length;
 
-        /* 轨迹点时间提示（控制数量，避免瓦片/平移卡顿） */
-        this.trackLayers.anchors = L.layerGroup();
-        var tooltipStep = Math.max(1, Math.ceil(points.length / 160));
-        for (var t = 0; t < points.length; t += tooltipStep) {
-            (function (point) {
-                var cm = L.circleMarker(that2._toLatLng({ lon: point.longitude, lat: point.latitude }), {
-                    radius: 2.5,
-                    color: "#0044cc",
-                    weight: 1,
-                    fillColor: "#0044cc",
-                    fillOpacity: 0.8,
-                    interactive: true
-                });
-                cm.bindTooltip(point.updatedate || "", { direction: "top", className: "ys-track-tooltip", sticky: true });
-                that2.trackLayers.anchors.addLayer(cm);
-            })(points[t]);
+            var color = track.color || palette[t % palette.length];
+            var latlngs = [];
+            var wgsPath = [];
+            var totalMeters = 0;
+            var cum = [0];
+            for (var k = 0; k < points.length; k++) {
+                var p = { lon: points[k].longitude, lat: points[k].latitude };
+                if (k > 0) {
+                    var seg = YSGeo.distanceMeters(wgsPath[k - 1], p);
+                    totalMeters += seg;
+                    cum.push(totalMeters);
+                }
+                wgsPath.push(p);
+                latlngs.push(this._toLatLng(p));
+            }
+            if (latlngs.length < 2) {
+                continue;
+            }
+            totalMetersAll += totalMeters;
+            var baseDuration = Math.min(20, Math.max(5, totalMeters / 1000 * 0.5));
+            if (baseDuration > maxBase) {
+                maxBase = baseDuration;
+            }
+
+            var line1 = L.polyline(latlngs, {
+                color: color,
+                weight: 3,
+                opacity: 0.75,
+                interactive: false
+            }).addTo(this.map);
+            var line2 = L.polyline([], {
+                color: color,
+                weight: 3.5,
+                opacity: 0.95,
+                interactive: false
+            }).addTo(this.map);
+            var marker = L.marker(latlngs[0], {
+                icon: this._trackMarkerIcon(track.iconInfo, color),
+                zIndexOffset: 2000,
+                interactive: false,
+                keyboard: false
+            }).addTo(this.map);
+
+            var anchorPoints = [];
+            var anchorGroup = L.layerGroup();
+            var tooltipStep = Math.max(1, Math.ceil(points.length / (multi ? 50 : 160)));
+            for (var a = 0; a < points.length; a += tooltipStep) {
+                anchorPoints.push(points[a]);
+            }
+            this._fillTrackAnchors(anchorGroup, anchorPoints, color);
+            anchorGroup.addTo(this.map);
+
+            bounds.extend(latlngs);
+            animTracks.push({
+                id: track.id,
+                name: track.name || "",
+                color: color,
+                iconInfo: track.iconInfo || {},
+                path: latlngs,
+                wgsPath: wgsPath,
+                points: points,
+                anchorPoints: anchorPoints,
+                cum: cum,
+                total: Math.max(totalMeters, 0.001),
+                baseDuration: baseDuration,
+                index: 0,
+                distance: 0,
+                line1: line1,
+                line2: line2,
+                marker: marker,
+                anchors: anchorGroup
+            });
         }
-        this.trackLayers.anchors.addTo(this.map);
-        this.map.fitBounds(this.trackLayers.line1.getBounds(), { padding: [40, 40], maxZoom: 17 });
+
+        if (!animTracks.length) {
+            this._clearTrackLayers();
+            return;
+        }
 
         this.trackAnim = {
-            path: latlngs,
-            wgsPath: wgsPath,
-            total: Math.max(totalMeters, 0.001),
-            cum: (function () {
-                var cum = [0];
-                var total = 0;
-                for (var q = 1; q < wgsPath.length; q++) {
-                    total += YSGeo.distanceMeters(wgsPath[q - 1], wgsPath[q]);
-                    cum.push(total);
-                }
-                return cum;
-            })(),
-            index: 0,
-            distance: 0,
+            tracks: animTracks,
+            baseDuration: maxBase,
+            progress: 0,
             running: false,
             paused: false,
             lastTs: null,
             lastLineTs: 0,
-            raf: null,
-            baseDuration: baseDuration
+            raf: null
         };
-        this.lastTrackInfo.drawn = points.length;
-        this.lastTrackInfo.original = original;
-        this.lastTrackInfo.totalMeters = Math.round(totalMeters);
-        this.lastTrackInfo.durationSec = Math.round(baseDuration);
-        this.lastTrackInfo.baseDuration = baseDuration;
-        this.trackLayers.marker.setLatLng(latlngs[0]);
+        this.lastTrackInfo = {
+            original: totalOriginal,
+            drawn: totalDrawn,
+            totalMeters: Math.round(totalMetersAll),
+            durationSec: Math.round(maxBase),
+            baseDuration: maxBase,
+            count: animTracks.length
+        };
+        if (bounds.isValid() && options.fit !== false) {
+            this.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+        }
+    },
+
+    _trackMarkerIcon: function (iconInfo, color) {
+        return L.divIcon({
+            html: ysTrackMarkerHtml(iconInfo, color),
+            className: "ys-leaflet-track-marker",
+            iconSize: [40, 40],
+            iconAnchor: [20, 20]
+        });
+    },
+
+    _fillTrackAnchors: function (group, points, color) {
+        var that = this;
+        group.clearLayers();
+        for (var i = 0; i < points.length; i++) {
+            (function (point) {
+                var cm = L.circleMarker(that._toLatLng({ lon: point.longitude, lat: point.latitude }), {
+                    radius: 2.5,
+                    color: color,
+                    weight: 1,
+                    fillColor: color,
+                    fillOpacity: 0.8,
+                    interactive: true
+                });
+                cm.bindTooltip(point.updatedate || "", {
+                    direction: "top",
+                    className: "ys-track-tooltip",
+                    sticky: true
+                });
+                group.addLayer(cm);
+            })(points[i]);
+        }
     },
 
     _clearTrackLayers: function () {
-        var keys = ["line1", "line2", "marker", "anchors"];
-        for (var i = 0; i < keys.length; i++) {
-            var layer = this.trackLayers[keys[i]];
-            if (layer && this.map && this.map.hasLayer(layer)) {
-                this.map.removeLayer(layer);
+        var anim = this.trackAnim;
+        if (anim && anim.tracks && this.map) {
+            for (var i = 0; i < anim.tracks.length; i++) {
+                var layers = [anim.tracks[i].line1, anim.tracks[i].line2,
+                    anim.tracks[i].marker, anim.tracks[i].anchors];
+                for (var j = 0; j < layers.length; j++) {
+                    if (layers[j] && this.map.hasLayer(layers[j])) {
+                        this.map.removeLayer(layers[j]);
+                    }
+                }
             }
         }
         this.trackLayers = {};
@@ -833,18 +911,36 @@ MapLeaflet.prototype = {
     },
 
     _drawTrackStatic: function () {
-        if (!this.trackAnim || !this.trackLayers.line1) {
+        var anim = this.trackAnim;
+        if (!anim || !anim.tracks || !this.map) {
             return;
         }
-        /* 底图切换后按新坐标系重建轨迹线 */
-        var latlngs = [];
-        for (var i = 0; i < this.trackAnim.wgsPath.length; i++) {
-            latlngs.push(this._toLatLng(this.trackAnim.wgsPath[i]));
+        for (var i = 0; i < anim.tracks.length; i++) {
+            var tr = anim.tracks[i];
+            var latlngs = [];
+            for (var k = 0; k < tr.wgsPath.length; k++) {
+                latlngs.push(this._toLatLng(tr.wgsPath[k]));
+            }
+            tr.path = latlngs;
+            tr.line1 = L.polyline(latlngs, {
+                color: tr.color, weight: 3, opacity: 0.75, interactive: false
+            }).addTo(this.map);
+            tr.line2 = L.polyline([], {
+                color: tr.color, weight: 3.5, opacity: 0.95, interactive: false
+            }).addTo(this.map);
+            tr.marker = L.marker(latlngs[0], {
+                icon: this._trackMarkerIcon(tr.iconInfo, tr.color),
+                zIndexOffset: 2000, interactive: false, keyboard: false
+            }).addTo(this.map);
+            tr.anchors = L.layerGroup();
+            this._fillTrackAnchors(tr.anchors, tr.anchorPoints || [], tr.color);
+            tr.anchors.addTo(this.map);
+            tr.index = 0;
+            tr.distance = 0;
         }
-        this.trackLayers.line1.setLatLngs(latlngs);
-        if (this.trackLayers.marker) {
-            this.trackLayers.marker.setLatLng(latlngs[this.trackAnim.index] || latlngs[0]);
-        }
+        anim.progress = 0;
+        anim.running = false;
+        anim.paused = false;
     },
 
     getTrackSpeed: function () {
@@ -881,48 +977,54 @@ MapLeaflet.prototype = {
             }
             var dt = Math.min(250, ts - anim.lastTs);
             anim.lastTs = ts;
-            var speedMps = anim.total / that.getTrackDuration();
-            anim.distance += speedMps * dt / 1000;
-
-            var total = anim.total;
-            var done = anim.distance >= total;
-            var dist = done ? total : anim.distance;
-
-            var i = anim.index;
-            while (i < anim.cum.length - 2 && anim.cum[i + 1] <= dist) {
-                i++;
+            var durationMs = that.getTrackDuration() * 1000;
+            if (!(durationMs > 0)) {
+                durationMs = 1000;
             }
-            anim.index = i;
-            var segStart = anim.cum[i];
-            var segEnd = anim.cum[i + 1];
-            var t = segEnd > segStart ? (dist - segStart) / (segEnd - segStart) : 0;
-            if (t < 0) {
-                t = 0;
-            } else if (t > 1) {
-                t = 1;
-            }
-            var p1 = anim.path[i];
-            var p2 = anim.path[i + 1];
-            if (!p1 || !p2) {
-                anim.running = false;
-                return;
-            }
-            var lat = p1.lat + (p2.lat - p1.lat) * t;
-            var lng = p1.lng + (p2.lng - p1.lng) * t;
-            that.trackLayers.marker.setLatLng(L.latLng(lat, lng));
+            anim.progress = Math.min(1, anim.progress + dt / durationMs);
+            var progress = anim.progress;
+            var updateLine = (progress >= 1) || (ts - anim.lastLineTs > 100);
 
-            if (done || ts - anim.lastLineTs > 100) {
+            for (var i = 0; i < anim.tracks.length; i++) {
+                var tr = anim.tracks[i];
+                var dist = progress * tr.total;
+                tr.distance = dist;
+                var idx = tr.index;
+                while (idx < tr.cum.length - 2 && tr.cum[idx + 1] <= dist) {
+                    idx++;
+                }
+                tr.index = idx;
+                var p1 = tr.path[idx];
+                var p2 = tr.path[idx + 1];
+                if (!p1 || !p2) {
+                    continue;
+                }
+                var segStart = tr.cum[idx];
+                var segEnd = tr.cum[idx + 1];
+                var tt = segEnd > segStart ? (dist - segStart) / (segEnd - segStart) : 0;
+                tt = Math.max(0, Math.min(1, tt));
+                tr.marker.setLatLng(L.latLng(
+                    p1.lat + (p2.lat - p1.lat) * tt,
+                    p1.lng + (p2.lng - p1.lng) * tt
+                ));
+                if (updateLine) {
+                    var passed = tr.path.slice(0, idx + 1);
+                    passed.push(tr.marker.getLatLng());
+                    tr.line2.setLatLngs(passed);
+                }
+                if (progress >= 1) {
+                    tr.marker.setLatLng(tr.path[tr.path.length - 1]);
+                    tr.line2.setLatLngs(tr.path);
+                }
+            }
+
+            if (updateLine) {
                 anim.lastLineTs = ts;
-                var passed = anim.path.slice(0, i + 1);
-                passed.push(L.latLng(lat, lng));
-                that.trackLayers.line2.setLatLngs(passed);
             }
-            if (done) {
+            if (progress >= 1) {
                 anim.running = false;
                 anim.paused = false;
-                anim.distance = total;
-                that.trackLayers.marker.setLatLng(anim.path[anim.path.length - 1]);
-                that.trackLayers.line2.setLatLngs(anim.path);
+                $(document).trigger("trackAnimationEnd");
                 return;
             }
             that._trackFrame(anim);
@@ -942,18 +1044,22 @@ MapLeaflet.prototype = {
 
     DrawStart: function () {
         var anim = this.trackAnim;
-        if (!anim || !anim.path || anim.path.length < 2 || !this.trackLayers.marker) {
+        if (!anim || !anim.tracks || !anim.tracks.length) {
             return;
         }
         this._stopTrackAnimation();
-        anim.running = true;
-        anim.paused = false;
-        anim.distance = 0;
-        anim.index = 0;
+        anim.progress = 0;
         anim.lastTs = null;
         anim.lastLineTs = 0;
-        this.trackLayers.marker.setLatLng(anim.path[0]);
-        this.trackLayers.line2.setLatLngs([]);
+        for (var i = 0; i < anim.tracks.length; i++) {
+            var tr = anim.tracks[i];
+            tr.index = 0;
+            tr.distance = 0;
+            tr.line2.setLatLngs([]);
+            tr.marker.setLatLng(tr.path[0]);
+        }
+        anim.running = true;
+        anim.paused = false;
         this._trackFrame(anim);
     },
 
@@ -978,33 +1084,47 @@ MapLeaflet.prototype = {
     },
 
     DrawStop: function () {
+        var anim = this.trackAnim;
+        if (!anim) {
+            return;
+        }
         this._stopTrackAnimation();
-        if (this.trackAnim) {
-            this.trackAnim.paused = false;
+        anim.progress = 0;
+        anim.paused = false;
+        for (var i = 0; i < anim.tracks.length; i++) {
+            var tr = anim.tracks[i];
+            tr.index = 0;
+            tr.distance = 0;
+            tr.line2.setLatLngs([]);
+            tr.marker.setLatLng(tr.path[0]);
         }
     },
 
     trackplayback: function (flag) {
-        if (!this.map) {
+        var anim = this.trackAnim;
+        if (!this.map || !anim || !anim.tracks) {
             return;
         }
         var show = (flag === undefined || flag === null) ? true : !!flag;
-        var keys = ["line1", "line2", "marker", "anchors"];
-        for (var i = 0; i < keys.length; i++) {
-            var layer = this.trackLayers[keys[i]];
-            if (!layer) {
-                continue;
-            }
-            if (show) {
-                if (!this.map.hasLayer(layer)) {
-                    layer.addTo(this.map);
+        for (var i = 0; i < anim.tracks.length; i++) {
+            var tr = anim.tracks[i];
+            var layers = [tr.line1, tr.line2, tr.marker, tr.anchors];
+            for (var j = 0; j < layers.length; j++) {
+                if (!layers[j]) {
+                    continue;
                 }
-            } else if (this.map.hasLayer(layer)) {
-                this.map.removeLayer(layer);
+                if (show) {
+                    if (!this.map.hasLayer(layers[j])) {
+                        layers[j].addTo(this.map);
+                    }
+                } else if (this.map.hasLayer(layers[j])) {
+                    this.map.removeLayer(layers[j]);
+                }
             }
         }
         if (!show) {
             this._stopTrackAnimation();
+            anim.paused = false;
         }
     },
 
