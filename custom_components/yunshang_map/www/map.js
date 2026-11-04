@@ -7,7 +7,7 @@
  *   geo_location_sources: [gdacs, usgs_earthquakes_feed]   # 或 all
  *   hours_to_show: 24                                       # 0 表示不显示历史轨迹
  *   default_zoom: 14
- *   map_type: amap          # amap / amap-satellite / baidu / baidu-satellite / osm
+ *   map_type: amap          # amap / amap-satellite / baidu / baidu-satellite / osm（全球街道）
  *   theme_mode: auto        # auto / light / dark
  *   aspect_ratio: 16:9       # 可选，控制卡片高度（留空则自适应布局）
  */
@@ -16,14 +16,14 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   const html = LitElement.prototype.html;
   const css = LitElement.prototype.css;
 
-  const CARD_VERSION = "1.11.0";
+  const CARD_VERSION = "1.12.0";
 
   const MAP_TYPES = [
     { value: "amap", label: "高德地图" },
     { value: "amap-satellite", label: "高德卫星" },
     { value: "baidu", label: "百度地图" },
     { value: "baidu-satellite", label: "百度卫星" },
-    { value: "osm", label: "OSM 地图" },
+    { value: "osm", label: "全球街道" },
   ];
 
   const TOKEN_STORAGE = "YUNSHANG_MAP_TOKENS";

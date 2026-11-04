@@ -84,13 +84,13 @@ var LEAFLET_BASEMAPS = {
         maxZoom: 18
     },
     osm: {
-        label: "OSM 地图",
+        label: "全球街道",
         crs: "wgs",
-        url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        subdomains: "abc",
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        subdomains: "",
         minZoom: 3,
         maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors"
+        attribution: "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
     }
 };
 
@@ -614,10 +614,21 @@ MapLeaflet.prototype = {
     },
 
     fitTrack: function () {
-        if (!this.map || !this.trackLayers.line1) {
+        if (!this.map) {
             return;
         }
-        var bounds = this.trackLayers.line1.getBounds();
+        var bounds = L.latLngBounds([]);
+        var anim = this.trackAnim;
+        if (anim && anim.tracks && anim.tracks.length) {
+            for (var i = 0; i < anim.tracks.length; i++) {
+                var tr = anim.tracks[i];
+                if (tr && tr.path && tr.path.length) {
+                    for (var j = 0; j < tr.path.length; j++) {
+                        bounds.extend(tr.path[j]);
+                    }
+                }
+            }
+        }
         if (bounds.isValid()) {
             this.map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
         }

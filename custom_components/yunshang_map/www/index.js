@@ -27,6 +27,7 @@ var trackSelected = {};      // 轨迹多选：{entityId: true}
 var trackSelectedOrder = []; // 选择顺序（决定轨迹颜色）
 var trackedDeviceIds = [];   // 已加载轨迹的设备
 var playbackState = "idle";  // idle | playing | paused
+var trackRealtimeHidden = false; // 回放轨迹时隐藏实时设备标记
 var trackVisible = false;
 var backhomeTrackEnabled = false;
 var backhomeTrackType = "drive";
@@ -446,6 +447,7 @@ function switchTab(tab) {
     updatePanelCompact();
     if (tab === "track") {
         renderTrackDeviceList();
+        refreshDevices(false);
     } else if (tab === "route") {
         renderRouteList();
     }
@@ -768,6 +770,17 @@ function selectDevice(deviceId, locate) {
     SaveState();
 }
 
+/** 回放轨迹期间隐藏/恢复所有实时设备标记（只保留轨迹里的移动图标） */
+function setRealtimeMarkersVisible(visible) {
+    for (var i = 0; i < deviceOrder.length; i++) {
+        var device = deviceStore[deviceOrder[i]];
+        if (!device) {
+            continue;
+        }
+        map.showdevicemarker(device.id, visible ? !device.hidden : false);
+    }
+}
+
 function toggleDeviceVisible(deviceId) {
     var device = deviceStore[deviceId];
     if (!device) {
@@ -775,7 +788,7 @@ function toggleDeviceVisible(deviceId) {
     }
     device.hidden = !device.hidden;
     hiddenIds[deviceId] = device.hidden ? 1 : 0;
-    map.showdevicemarker(deviceId, !device.hidden);
+    map.showdevicemarker(deviceId, trackRealtimeHidden ? false : !device.hidden);
     renderDeviceList(true);
     SaveState();
     ysToast(device.hidden ? "已隐藏「" + device.name + "」的地图标记" : "已显示「" + device.name + "」的地图标记");
@@ -866,7 +879,9 @@ function handleStates(states) {
         map.drawdevicemarker(entityId, device.name, { lon: device.lon, lat: device.lat },
             deviceIconInfo(device), { cls: device.state_cls }, device.accuracy);
 
-        if (!previous && device.hidden) {
+        if (trackRealtimeHidden) {
+            map.showdevicemarker(entityId, false);
+        } else if (!previous && device.hidden) {
             map.showdevicemarker(entityId, false);
         }
     }
@@ -940,17 +955,21 @@ function renderTrackDeviceList() {
     if (!container) {
         return;
     }
-    /* 清理已失效的选择 */
+    /* 去重并保持选择顺序（trackSelectedOrder 是唯一准绳，不因设备暂时未加载而丢选择） */
+    var seen = {};
     var cleanOrder = [];
     for (var oi = 0; oi < trackSelectedOrder.length; oi++) {
         var oid = trackSelectedOrder[oi];
-        if (trackSelected[oid] && deviceStore[oid]) {
+        if (oid && !seen[oid]) {
+            seen[oid] = true;
             cleanOrder.push(oid);
-        } else {
-            delete trackSelected[oid];
         }
     }
     trackSelectedOrder = cleanOrder;
+    trackSelected = {};
+    for (var si = 0; si < trackSelectedOrder.length; si++) {
+        trackSelected[trackSelectedOrder[si]] = true;
+    }
 
     var html = [];
     for (var i = 0; i < deviceOrder.length; i++) {
@@ -958,7 +977,7 @@ function renderTrackDeviceList() {
         if (!d || !hasPosition(d)) {
             continue;
         }
-        var checked = !!trackSelected[d.id];
+        var checked = trackSelectedOrder.indexOf(d.id) >= 0;
         var colorDot = '<span class="ys-track-color" style="background:' +
             (checked ? trackColorFor(d.id) : "transparent") + '" aria-hidden="true"></span>';
         var checkbox = '<input class="ys-route-check" type="checkbox" value="' +
@@ -1495,6 +1514,8 @@ function loadSelectedTracks() {
         map.queryMulti(tracks, true);
         map.setTrackSpeed(trackSpeedMultiplier);
         trackVisible = true;
+        trackRealtimeHidden = true;
+        setRealtimeMarkersVisible(false);
         trackedDeviceIds = ids.slice();
         trackedDeviceId = ids[0] || null;
         activeDeviceId = trackedDeviceId;
@@ -1573,6 +1594,10 @@ function updateTrackHintText() {
 
 function hideTrack() {
     trackRequestSeq++; /* 取消仍在加载中的轨迹请求 */
+    if (trackRealtimeHidden) {
+        trackRealtimeHidden = false;
+        setRealtimeMarkersVisible(true);
+    }
     map.DrawStop();
     map.query(null, false);
     trackVisible = false;
