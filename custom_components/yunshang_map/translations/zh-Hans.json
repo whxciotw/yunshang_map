@@ -5,7 +5,7 @@
                 "title": "定制地图",
                 "description": "高德开放平台 API 申请：https://console.amap.com/dev/key/app",
                 "data": {
-                    "longtoken": "Home Assistant 长期访问令牌（手机 App 使用或未保存密码时必须填写）",
+                    "longtoken": "Home Assistant 长期访问令牌（可选；在 HA 内嵌显示会自动复用当前登录会话，仅独立浏览器打开地图页面时需要）",
                     "trackerids": "追踪设备",
                     "gaodekey": "高德地图 Web 端 Key（不正确将不显示回家路线和时间，且无法使用深色地图）",
                     "jscode": "安全密钥 jscode"
@@ -23,7 +23,7 @@
                 "title": "定制地图 选项",
                 "description": "修改追踪设备后需重载集成才能生效。",
                 "data": {
-                    "longtoken": "Home Assistant 长期访问令牌（手机 App 使用或未保存密码时必须填写）",
+                    "longtoken": "Home Assistant 长期访问令牌（可选；在 HA 内嵌显示会自动复用当前登录会话，仅独立浏览器打开地图页面时需要）",
                     "trackerids": "追踪设备（不选择则显示所有设备）",
                     "gaodekey": "高德地图 Web 端 Key（不正确将不显示回家路线和时间，且无法使用深色地图）",
                     "jscode": "安全密钥 jscode"

@@ -5,7 +5,7 @@
                 "title": "Custom Map",
                 "description": "AMap (Gaode) open platform API: https://console.amap.com/dev/key/app",
                 "data": {
-                    "longtoken": "Home Assistant long-lived access token (required for the mobile app or when the password is not saved)",
+                    "longtoken": "Home Assistant long-lived access token (optional; embedded display reuses the current HA session, only needed when opening the map page directly)",
                     "trackerids": "Tracked devices",
                     "gaodekey": "AMap Web service key (an invalid key disables the way-home route/time and the dark map)",
                     "jscode": "Security key (jscode)"
@@ -23,7 +23,7 @@
                 "title": "Custom Map - Options",
                 "description": "Reload the integration after changing the tracked devices.",
                 "data": {
-                    "longtoken": "Home Assistant long-lived access token (required for the mobile app or when the password is not saved)",
+                    "longtoken": "Home Assistant long-lived access token (optional; embedded display reuses the current HA session, only needed when opening the map page directly)",
                     "trackerids": "Tracked devices (show all devices when none is selected)",
                     "gaodekey": "AMap Web service key (an invalid key disables the way-home route/time and the dark map)",
                     "jscode": "Security key (jscode)"

@@ -57,10 +57,13 @@ $(function () {
     embedMode = (query.get("embed") === "1");
     hoursToShow = parseInt(query.get("hours") || "0", 10) || 0;
     initAuthToken();
-    if (!authToken && !newToken) {
-        showMapError(t("tokenMissing"), t("tokenMissingDetail"));
-        return;
-    }
+
+    /* 优先复用 HA 前端会话（同一登录态），没有父页面时才需要长期令牌 */
+    detectDataSource(function () {
+        if (dataSource === "token" && !authToken && !newToken) {
+            showMapError(t("tokenMissing"), t("tokenMissingDetail"));
+            return;
+        }
 
     initStaticUi();
     loadState();
@@ -96,6 +99,7 @@ $(function () {
             showMapError(t("mapLoadFailed"), t("mapLoadFailedDetail"));
         }
     }, 18000);
+    });
 });
 
 /* ================= 初始化 ================= */
@@ -778,24 +782,14 @@ function refreshDevices(showErrors) {
     if (document.hidden && !showErrors) {
         return;
     }
-    $.ajax({
-        type: "GET",
-        url: HomeAssistantWebAPIUrl + "/api/states",
-        beforeSend: function (request) {
-            request.setRequestHeader("x-ha-access", authToken);
-            request.setRequestHeader("Authorization", newToken);
-        },
-        cache: false,
-        async: true,
-        dataType: "json",
-        success: function (states) {
-            handleStates(states);
-        },
-        error: function (XMLHttpRequest, textStatus, errorThrown) {
+    haFetchStates(function (states) {
+        if (!states) {
             if (showErrors) {
-                ysToast("刷新设备列表失败：" + (errorThrown || textStatus), true);
+                ysToast("刷新设备列表失败，请检查登录状态/长期令牌", true);
             }
+            return;
         }
+        handleStates(states);
     });
 }
 
@@ -983,6 +977,158 @@ var trackRangeIndex = 7;
 var seekDragging = false;
 var seekGeoToken = 0;
 var seekGeoTimer = null;
+
+/* 数据源：优先复用 Home Assistant 前端当前登录会话（无需长期令牌），失败才退回 REST + 令牌 */
+var parentHass = null;
+var dataSource = "token";
+
+function getParentHass() {
+    try {
+        if (!window.parent || window.parent === window) {
+            return null;
+        }
+        var doc = window.parent.document;
+        if (!doc) {
+            return null;
+        }
+        var ha = doc.querySelector("home-assistant");
+        if (ha && ha.hass && ha.hass.connection) {
+            return ha.hass;
+        }
+    } catch (e) {
+        /* 跨域或父页面不可访问 */
+    }
+    return null;
+}
+
+/** 检测是否内嵌在 HA 中：是则复用 HA 前端会话（WebSocket），否则使用长期令牌走 REST */
+function detectDataSource(callback) {
+    parentHass = getParentHass();
+    if (parentHass) {
+        dataSource = "hass";
+        callback();
+        return;
+    }
+    var started = Date.now();
+    (function poll() {
+        parentHass = getParentHass();
+        if (parentHass) {
+            dataSource = "hass";
+            callback();
+            return;
+        }
+        if (Date.now() - started > 3000) {
+            dataSource = "token";
+            callback();
+            return;
+        }
+        setTimeout(poll, 150);
+    })();
+}
+
+/** 取全部状态（WS 优先，REST 兜底） */
+function haFetchStates(callback) {
+    if (dataSource === "hass" && parentHass) {
+        parentHass.callWS({ type: "get_states" })
+            .then(function (states) { callback(states || []); })
+            .catch(function () { callback(null); });
+        return;
+    }
+    $.ajax({
+        type: "GET",
+        url: HomeAssistantWebAPIUrl + "/api/states",
+        beforeSend: function (request) {
+            request.setRequestHeader("x-ha-access", authToken);
+            request.setRequestHeader("Authorization", newToken);
+        },
+        cache: false,
+        async: true,
+        dataType: "json",
+        success: function (states) { callback(states || []); },
+        error: function () { callback(null); }
+    });
+}
+
+/** 取 HA 配置里的家坐标（WS 优先） */
+function haFetchHome(callback) {
+    if (dataSource === "hass" && parentHass) {
+        var cfg = parentHass.config || {};
+        if (cfg.latitude !== undefined && cfg.longitude !== undefined) {
+            callback({ lon: cfg.longitude, lat: cfg.latitude });
+            return;
+        }
+        parentHass.callWS({ type: "get_config" })
+            .then(function (data) {
+                callback(data && data.latitude !== undefined ? { lon: data.longitude, lat: data.latitude } : null);
+            })
+            .catch(function () { callback(null); });
+        return;
+    }
+    $.ajax({
+        type: "GET",
+        url: HomeAssistantWebAPIUrl + "/api/config",
+        beforeSend: function (request) {
+            request.setRequestHeader("x-ha-access", authToken);
+            request.setRequestHeader("Authorization", newToken);
+        },
+        cache: false,
+        async: true,
+        dataType: "json",
+        success: function (data) {
+            if (typeof data === "string") {
+                data = $.parseJSON(data);
+            }
+            callback({ lon: data.longitude, lat: data.latitude });
+        },
+        error: function () { callback(null); }
+    });
+}
+
+/** 通过 HA WebSocket 取历史（复用当前登录会话，无需长期令牌） */
+function fetchHistoryWs(entityIds, from, to, callback) {
+    if (!(dataSource === "hass" && parentHass)) {
+        callback(null);
+        return;
+    }
+    parentHass.callWS({
+        type: "history/history_during_period",
+        start_time: from.toISOString(),
+        end_time: to.toISOString(),
+        entity_ids: entityIds,
+        minimal_response: false,
+        no_attributes: false
+    }).then(function (result) {
+        callback(result || {});
+    }).catch(function () {
+        callback(null);
+    });
+}
+
+/** 把一条历史状态转换成轨迹点（兼容 REST 与 WS 两种结构） */
+function historyStateToPoint(n) {
+    var attrs = n.attributes || n.a || {};
+    var lon = attrs.longitude;
+    var lat = attrs.latitude;
+    if (lon === null || lon === undefined || lon === "" || lat === null || lat === undefined || lat === "") {
+        return null;
+    }
+    var lastUpdated = n.last_updated;
+    if (!lastUpdated && n.lu !== undefined) {
+        lastUpdated = new Date(Number(n.lu) * 1000).toISOString();
+    }
+    return {
+        longitude: lon,
+        latitude: lat,
+        lastseen: attrs.lastseen,
+        latest_report_time: attrs.latest_report_time,
+        last_updated: lastUpdated,
+        address: attrs.address || attrs.location_name || attrs.geocoded_location || "",
+        updatedate: (attrs.lastseen ? "最后出现：" + attrs.lastseen + "<br/>" : "") +
+            (attrs.latest_report_time ? "上报时间：" + attrs.latest_report_time + "<br/>记录时间：" : "") +
+            (getDatetime(lastUpdated) ? "" + getDatetime(lastUpdated) : ""),
+        lnglat: [lon, lat]
+    };
+}
 
 function getTrackRange() {
     return TRACK_RANGES[trackRangeIndex] || TRACK_RANGES[7];
@@ -1315,12 +1461,28 @@ function hideTrack() {
 
 function getLocationData(entityId, callback) {
     var range = getTimeRange();
+    var arr = [];
+
+    /* 优先用 HA 会话的 WebSocket 取历史（无需长期令牌） */
+    if (dataSource === "hass" && parentHass) {
+        fetchHistoryWs([entityId], range.from, range.to, function (result) {
+            var list = result && result[entityId] ? result[entityId] : [];
+            for (var i = 0; i < list.length; i++) {
+                var point = historyStateToPoint(list[i]);
+                if (point) {
+                    arr.push(point);
+                }
+            }
+            callback(arr);
+        });
+        return;
+    }
+
     var strFrom = getStandardDatetime(range.from);
     var strTo = getStandardDatetime(range.to);
     var url = HomeAssistantWebAPIUrl + "/api/history/period/" + strFrom +
         "?end_time=" + strTo + "&filter_entity_id=" + encodeURIComponent(entityId);
 
-    var arr = [];
     $.ajax({
         type: "GET",
         url: url,
@@ -1334,23 +1496,9 @@ function getLocationData(entityId, callback) {
         success: function (data) {
             if (data && data.length && data[0]) {
                 $.each(data[0], function (i, n) {
-                    if (n.attributes &&
-                        n.attributes["longitude"] !== null && n.attributes["longitude"] !== undefined &&
-                        n.attributes["latitude"] !== null && n.attributes["latitude"] !== undefined &&
-                        n.attributes["longitude"] !== "" && n.attributes["latitude"] !== "") {
-                        arr.push({
-                            longitude: n.attributes["longitude"],
-                            latitude: n.attributes["latitude"],
-                            lastseen: n.attributes["lastseen"],
-                            latest_report_time: n.attributes["latest_report_time"],
-                            last_updated: n.last_updated,
-                            address: n.attributes["address"] || n.attributes["location_name"] ||
-                                n.attributes["geocoded_location"] || "",
-                            updatedate: (n.attributes["lastseen"] ? "最后出现：" + n.attributes["lastseen"] + "<br/>" : "") +
-                                (n.attributes["latest_report_time"] ? "上报时间：" + n.attributes["latest_report_time"] + "<br/>记录时间：" : "") +
-                                (getDatetime(n.last_updated) ? "" + getDatetime(n.last_updated) : ""),
-                            lnglat: [n.attributes["longitude"], n.attributes["latitude"]]
-                        });
+                    var point = historyStateToPoint(n);
+                    if (point) {
+                        arr.push(point);
                     }
                 });
             }
@@ -1595,48 +1743,20 @@ function syncToolbarState(ids) {
 /* ================= 数据读取 ================= */
 
 function loadHomePoint(callback) {
-    $.ajax({
-        type: "GET",
-        url: HomeAssistantWebAPIUrl + "/api/config",
-        beforeSend: function (request) {
-            request.setRequestHeader("x-ha-access", authToken);
-            request.setRequestHeader("Authorization", newToken);
-        },
-        cache: false,
-        async: false,
-        dataType: "json",
-        success: function (data) {
-            if (typeof data === "string") {
-                data = $.parseJSON(data);
-            }
-            homePoint = { lon: data.longitude, lat: data.latitude };
-        },
-        error: function () {
-            homePoint = null;
+    haFetchHome(function (home) {
+        homePoint = home;
+        if (callback) {
+            callback();
         }
     });
-    if (callback) {
-        callback();
-    }
 }
 
 function loadZones(arrZone, callback) {
-    $.ajax({
-        type: "GET",
-        url: HomeAssistantWebAPIUrl + "/api/states",
-        beforeSend: function (request) {
-            request.setRequestHeader("x-ha-access", authToken);
-            request.setRequestHeader("Authorization", newToken);
-        },
-        cache: false,
-        async: false,
-        dataType: "json",
-        success: function (data) {
-            if (!data) {
-                return;
-            }
-            $.each(data, function (i, n) {
+    haFetchStates(function (states) {
+        if (states) {
+            $.each(states, function (i, n) {
                 if (n.entity_id && n.entity_id.indexOf("zone.") === 0 &&
+                    n.attributes &&
                     n.attributes["longitude"] != undefined && n.attributes["latitude"] != null) {
                     arrZone.push({
                         longitude: n.attributes["longitude"],
@@ -1648,10 +1768,10 @@ function loadZones(arrZone, callback) {
                 }
             });
         }
+        if (callback) {
+            callback();
+        }
     });
-    if (callback) {
-        callback();
-    }
 }
 
 /* ================= 底图切换 ================= */
@@ -1711,11 +1831,65 @@ function fetchHistoryPaths() {
     }
     var end = new Date();
     var start = new Date(end.getTime() - hoursToShow * 3600 * 1000);
+    var entities = deviceOrder.slice();
+    var paths = [];
+
+    function appendPath(index, entityId, points) {
+        if (!points || points.length < 2) {
+            return;
+        }
+        var maxPoints = 240;
+        if (points.length > maxPoints) {
+            var step = Math.ceil(points.length / maxPoints);
+            var sampled = [];
+            for (var k = 0; k < points.length; k += step) {
+                sampled.push(points[k]);
+            }
+            sampled.push(points[points.length - 1]);
+            points = sampled;
+        }
+        var device = deviceStore[entityId] || {};
+        paths.push({
+            id: entityId,
+            name: device.name || entityId,
+            color: DEVICE_COLORS[index % DEVICE_COLORS.length],
+            points: points
+        });
+    }
+
+    function finishIfDone(pending) {
+        if (pending === 0 && map.setHistoryPaths) {
+            map.setHistoryPaths(paths);
+            historyLoaded = true;
+        }
+    }
+
+    /* 优先用 HA 会话的 WebSocket 一次取回所有实体历史 */
+    if (dataSource === "hass" && parentHass) {
+        fetchHistoryWs(entities, start, end, function (result) {
+            if (!result) {
+                return;
+            }
+            for (var i = 0; i < entities.length; i++) {
+                var entityId = entities[i];
+                var list = result[entityId] || [];
+                var points = [];
+                for (var j = 0; j < list.length; j++) {
+                    var point = historyStateToPoint(list[j]);
+                    if (point) {
+                        points.push({ lon: point.longitude, lat: point.latitude, time: getDatetime(point.last_updated) });
+                    }
+                }
+                appendPath(i, entityId, points);
+            }
+            finishIfDone(0);
+        });
+        return;
+    }
+
     var from = getStandardDatetime(start);
     var to = getStandardDatetime(end);
-    var entities = deviceOrder.slice();
     var pending = entities.length;
-    var paths = [];
 
     for (var i = 0; i < entities.length; i++) {
         (function (index) {
@@ -1733,48 +1907,23 @@ function fetchHistoryPaths() {
                 async: true,
                 dataType: "json",
                 success: function (data) {
+                    var points = [];
                     if (data && data.length && data[0]) {
-                        var points = [];
                         for (var j = 0; j < data[0].length; j++) {
                             var n = data[0][j];
-                            if (!n.attributes) {
-                                continue;
+                            var point = historyStateToPoint(n);
+                            if (point) {
+                                points.push({ lon: point.longitude, lat: point.latitude, time: getDatetime(point.last_updated) });
                             }
-                            var lon = n.attributes.longitude;
-                            var lat = n.attributes.latitude;
-                            if (lon === undefined || lon === null || lat === undefined || lat === null) {
-                                continue;
-                            }
-                            points.push({ lon: lon, lat: lat, time: getDatetime(n.last_updated) });
                         }
-                        if (points.length > 1) {
-                            var maxPoints = 240;
-                            if (points.length > maxPoints) {
-                                var step = Math.ceil(points.length / maxPoints);
-                                var sampled = [];
-                                for (var k = 0; k < points.length; k += step) {
-                                    sampled.push(points[k]);
-                                }
-                                sampled.push(points[points.length - 1]);
-                                points = sampled;
-                            }
-                            var device = deviceStore[entityId] || {};
-                            paths.push({
-                                id: entityId,
-                                name: device.name || entityId,
-                                color: DEVICE_COLORS[index % DEVICE_COLORS.length],
-                                points: points
-                            });
-                        }
+                        appendPath(index, entityId, points);
                     }
                     pending--;
-                    if (pending === 0 && map.setHistoryPaths) {
-                        map.setHistoryPaths(paths);
-                        historyLoaded = true;
-                    }
+                    finishIfDone(pending);
                 },
                 error: function () {
                     pending--;
+                    finishIfDone(pending);
                 }
             });
         })(i);

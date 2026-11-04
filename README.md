@@ -131,6 +131,12 @@ Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracke
     - < 350px：再隐藏页签与底栏，最大化地图区域
 49. 逆地理编码只在需要时加载高德 JS（与回家路线共用同一按需加载逻辑），并缓存结果。
 
+### v1.10.0 更新
+
+50. **地图页/卡片改为复用 HA 当前登录会话（不再依赖长期访问令牌）**：内嵌在 HA 中时，页面会自动读取父页面的 `hass` 连接，通过 WebSocket 的 `get_states` / `history/history_during_period` 获取设备、区域和轨迹历史（与 ryan 的 map-card 使用 `hass.connection` 取历史的思路一致），**长期访问令牌变为可选**。
+51. 只有在**独立浏览器**中直接打开地图页面（没有父级 HA 页面）时，才回退到 REST API + 长期令牌；其他情况下不产生 `/api/states`、`/api/history/period` 请求。
+52. 集成选项里的「长期访问令牌」文案更新为“可选”，并说明其只用于独立打开页面的场景；已有令牌配置可以保留，也可以删除。
+
 > 原有功能（轨迹回放、回家路线与用时、路况、家的范围、卡片嵌入等）均保持不变。
 
 ### 关于借鉴 ryan 的 map-card
@@ -146,6 +152,7 @@ Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracke
 | 多底图（高德/百度/卫星/路况/OSM） | 自定义 CRS + 瓦片图层 | ✅ 已实现（7 种底图，百度用 proj4leaflet 纠正投影） |
 | 多设备历史轨迹同屏（不同颜色、渐隐） | `ha-map-plus` 的 paths 绘制 | ✅ 已实现（卡片 `hours_to_show`） |
 | `hours_to_show` 历史轨迹 | 历史数据 + tooltip 时间 | ✅ 已实现（每 60 秒刷新） |
+| 历史数据获取方式 | `hass.connection` WebSocket 取历史，无需令牌 | ✅ 已实现（内嵌时自动复用 HA 会话） |
 | 卡片 aspect_ratio / geo_location_sources | 卡片布局与数据源配置 | ✅ 已实现 |
 
 ### 卡片可视化编辑器与配置项
@@ -209,7 +216,7 @@ HACS → 集成 → 右上角 → 自定义存储库，填入仓库地址 `http:
 | --- | --- |
 | 高德地图 Web 端 Key | 必填。在 [高德开放平台](https://console.amap.com/dev/key/app) 申请；仅「回家路线/回家用时」的路线计算需要（按需加载），不影响底图与轨迹回放。 |
 | 安全密钥 jscode | 2021-12 之后申请的 Key 需要同时配置，不需要则留空。 |
-| Home Assistant 长期访问令牌 | 推荐配置。手机 App 使用或登录时未保存密码时必须填写。 |
+| Home Assistant 长期访问令牌 | **可选**。内嵌在 HA 中显示时会自动复用当前登录会话（WebSocket），通常无需填写；仅在独立浏览器直接打开地图页面时需要。 |
 | 追踪设备 | 可在「选项」中选择需要显示的 `device_tracker`；不选择则显示全部。 |
 
 > 提示：追踪设备只针对 `device_tracker` 类型实体。
