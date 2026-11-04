@@ -15,28 +15,28 @@
 
     <script src="js/jquery-1.12.4.min.js"></script>
 
-    <script src="config.js?v=1.5.0"></script>
-    <script src="js/utils.js?v=1.5.0"></script>
-    <script src="js/language.js?v=1.5.0"></script>
-    <script src="js/theme.js?v=1.5.0"></script>
-    <script src="js/uiicons.js?v=1.5.0"></script>
-    <script src="js/deviceicons.js?v=1.5.0"></script>
-    <script src="js/entityutils.js?v=1.5.0"></script>
+    <script src="config.js?v=1.6.0"></script>
+    <script src="js/utils.js?v=1.6.0"></script>
+    <script src="js/language.js?v=1.6.0"></script>
+    <script src="js/theme.js?v=1.6.0"></script>
+    <script src="js/uiicons.js?v=1.6.0"></script>
+    <script src="js/deviceicons.js?v=1.6.0"></script>
+    <script src="js/entityutils.js?v=1.6.0"></script>
 
-    <script src="js/dock.js?v=1.5.0"></script>
-    <link rel="stylesheet" href="css/dock.css?v=1.5.0">
+    <script src="js/dock.js?v=1.6.0"></script>
+    <link rel="stylesheet" href="css/dock.css?v=1.6.0">
 
     <link rel="stylesheet" href="leaflet/leaflet.css" />
     <link rel="stylesheet" href="leaflet/markercluster.css" />
     <link rel="stylesheet" href="leaflet/markercluster-default.css" />
-    <script src="leaflet/leaflet.js?v=1.5.0"></script>
-    <script src="leaflet/markercluster.js?v=1.5.0"></script>
-    <script src="leaflet/proj4.js?v=1.5.0"></script>
-    <script src="leaflet/proj4leaflet.js?v=1.5.0"></script>
-    <script src="js/geo.js?v=1.5.0"></script>
-    <script src="js/mapleaflet.js?v=1.5.0"></script>
-    <script src="js/map.js?v=1.5.0"></script>
-    <link rel="stylesheet" href="css/map.css?v=1.5.0">
+    <script src="leaflet/leaflet.js?v=1.6.0"></script>
+    <script src="leaflet/markercluster.js?v=1.6.0"></script>
+    <script src="leaflet/proj4.js?v=1.6.0"></script>
+    <script src="leaflet/proj4leaflet.js?v=1.6.0"></script>
+    <script src="js/geo.js?v=1.6.0"></script>
+    <script src="js/mapleaflet.js?v=1.6.0"></script>
+    <script src="js/map.js?v=1.6.0"></script>
+    <link rel="stylesheet" href="css/map.css?v=1.6.0">
 
 </head>
 
@@ -90,20 +90,15 @@
                 <div class="ys-pane" data-pane="track">
                     <div class="ys-field">
                         <label>追踪设备（可多选，同时显示轨迹）</label>
-                        <div id="trackDeviceList" class="ys-device-list ys-scroll-list" role="list"></div>
+                        <div id="trackDeviceList" class="ys-device-list ys-scroll-list ys-track-list" role="list"></div>
                     </div>
-                    <div class="ys-field-row">
-                        <label for="queryTimeFrom">开始</label>
-                        <input id="queryTimeFrom" type="datetime-local" class="ys-input">
-                    </div>
-                    <div class="ys-field-row">
-                        <label for="queryTimeTo">结束</label>
-                        <input id="queryTimeTo" type="datetime-local" class="ys-input">
-                    </div>
-                    <div class="ys-chips">
-                        <button type="button" class="ys-chip" data-range="today">今天</button>
-                        <button type="button" class="ys-chip" data-range="yesterday">昨天</button>
-                        <button type="button" class="ys-chip" data-range="7d">近7天</button>
+                    <div class="ys-field ys-range-field">
+                        <div class="ys-field-head">
+                            <label for="trackRange">回放范围</label>
+                            <span id="trackRangeLabel" class="ys-field-value">近 1 天</span>
+                        </div>
+                        <input type="range" id="trackRange" class="ys-range" min="0" max="9" step="1" value="7"
+                            aria-label="回放时间范围">
                     </div>
                     <div class="ys-actions">
                         <button type="button" id="btnQuery" class="ys-btn ys-btn-primary">显示运动轨迹</button>
@@ -121,6 +116,14 @@
                     <div class="ys-actions ys-playback-actions" id="playbackActions" hidden>
                         <button type="button" id="btnPlayPause" class="ys-btn ys-btn-primary">播放</button>
                         <button type="button" id="btnStopPlay" class="ys-btn" disabled>停止</button>
+                    </div>
+                    <div class="ys-field ys-range-field" id="seekField" hidden>
+                        <div class="ys-field-head">
+                            <label for="trackSeek">轨迹位置</label>
+                            <span id="seekPosLabel" class="ys-field-value">--</span>
+                        </div>
+                        <input type="range" id="trackSeek" class="ys-range ys-seek" min="0" max="1000" step="1"
+                            value="0" aria-label="轨迹位置">
                     </div>
                     <div class="ys-hint" id="trackHint"></div>
                 </div>
@@ -184,7 +187,7 @@
         <img id="toolbar_theme" src="images/toolbar_theme_auto.png" width="42" alt="主题模式" title="主题模式">
     </div>
 
-    <script src="index.js?v=1.5.0"></script>
+    <script src="index.js?v=1.6.0"></script>
 </body>
 
 </html>

@@ -13,6 +13,16 @@ MapController.prototype = {
         return this.maps[this.currentMapIndex];
     },
 
+    seek: function (progress) {
+        if (this.getMap().seek) {
+            this.getMap().seek(progress);
+        }
+    },
+
+    getTrackProgress: function () {
+        return this.getMap().getTrackProgress ? this.getMap().getTrackProgress() : 0;
+    },
+
     getTrackInfo: function () {
         return this.getMap().lastTrackInfo || null;
     },

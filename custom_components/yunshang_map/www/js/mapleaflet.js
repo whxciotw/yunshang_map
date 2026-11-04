@@ -963,6 +963,91 @@ MapLeaflet.prototype = {
         return Math.max(2, anim.baseDuration / (this.trackSpeed || 1));
     },
 
+    /** 把动画进度应用到所有轨迹（marker 位置、已走过的轨迹线） */
+    _applyTrackProgress: function (anim, progress, forceLine) {
+        for (var i = 0; i < anim.tracks.length; i++) {
+            var tr = anim.tracks[i];
+            var dist = progress * tr.total;
+            tr.distance = dist;
+            var idx = tr.index;
+            while (idx < tr.cum.length - 2 && tr.cum[idx + 1] <= dist) {
+                idx++;
+            }
+            tr.index = idx;
+            var p1 = tr.path[idx];
+            var p2 = tr.path[idx + 1];
+            if (!p1 || !p2) {
+                continue;
+            }
+            var segStart = tr.cum[idx];
+            var segEnd = tr.cum[idx + 1];
+            var tt = segEnd > segStart ? (dist - segStart) / (segEnd - segStart) : 0;
+            tt = Math.max(0, Math.min(1, tt));
+            tr.marker.setLatLng(L.latLng(
+                p1.lat + (p2.lat - p1.lat) * tt,
+                p1.lng + (p2.lng - p1.lng) * tt
+            ));
+            if (forceLine || progress >= 1) {
+                if (progress >= 1) {
+                    tr.line2.setLatLngs(tr.path);
+                } else {
+                    var passed = tr.path.slice(0, idx + 1);
+                    passed.push(tr.marker.getLatLng());
+                    tr.line2.setLatLngs(passed);
+                }
+            }
+            if (progress >= 1) {
+                tr.marker.setLatLng(tr.path[tr.path.length - 1]);
+            }
+        }
+    },
+
+    /** 取第一条轨迹在当前进度对应的时间戳（毫秒），用于拖动条显示 */
+    _seekTs: function (anim, progress) {
+        if (!anim || !anim.tracks || !anim.tracks.length) {
+            return null;
+        }
+        var tr = anim.tracks[0];
+        if (!tr.points || !tr.points.length) {
+            return null;
+        }
+        var dist = progress * tr.total;
+        var idx = 0;
+        while (idx < tr.cum.length - 2 && tr.cum[idx + 1] <= dist) {
+            idx++;
+        }
+        if (idx >= tr.points.length) {
+            idx = tr.points.length - 1;
+        }
+        var point = tr.points[idx];
+        if (!point || !point.last_updated) {
+            return null;
+        }
+        var ts = Date.parse(point.last_updated);
+        return isNaN(ts) ? null : ts;
+    },
+
+    /** 拖动进度条：跳转到轨迹的任意位置 */
+    seek: function (progress) {
+        var anim = this.trackAnim;
+        if (!anim || !anim.tracks) {
+            return;
+        }
+        progress = Math.max(0, Math.min(1, Number(progress) || 0));
+        this._stopTrackAnimation();
+        anim.progress = progress;
+        anim.paused = progress > 0 && progress < 1;
+        this._applyTrackProgress(anim, progress, true);
+        $(document).trigger("trackProgress", [{
+            progress: progress,
+            ts: this._seekTs(anim, progress)
+        }]);
+    },
+
+    getTrackProgress: function () {
+        return this.trackAnim ? this.trackAnim.progress : 0;
+    },
+
     _trackFrame: function (anim) {
         var that = this;
         if (!anim || !anim.running) {
@@ -985,47 +1070,24 @@ MapLeaflet.prototype = {
             var progress = anim.progress;
             var updateLine = (progress >= 1) || (ts - anim.lastLineTs > 100);
 
-            for (var i = 0; i < anim.tracks.length; i++) {
-                var tr = anim.tracks[i];
-                var dist = progress * tr.total;
-                tr.distance = dist;
-                var idx = tr.index;
-                while (idx < tr.cum.length - 2 && tr.cum[idx + 1] <= dist) {
-                    idx++;
-                }
-                tr.index = idx;
-                var p1 = tr.path[idx];
-                var p2 = tr.path[idx + 1];
-                if (!p1 || !p2) {
-                    continue;
-                }
-                var segStart = tr.cum[idx];
-                var segEnd = tr.cum[idx + 1];
-                var tt = segEnd > segStart ? (dist - segStart) / (segEnd - segStart) : 0;
-                tt = Math.max(0, Math.min(1, tt));
-                tr.marker.setLatLng(L.latLng(
-                    p1.lat + (p2.lat - p1.lat) * tt,
-                    p1.lng + (p2.lng - p1.lng) * tt
-                ));
-                if (updateLine) {
-                    var passed = tr.path.slice(0, idx + 1);
-                    passed.push(tr.marker.getLatLng());
-                    tr.line2.setLatLngs(passed);
-                }
-                if (progress >= 1) {
-                    tr.marker.setLatLng(tr.path[tr.path.length - 1]);
-                    tr.line2.setLatLngs(tr.path);
-                }
-            }
-
-            if (updateLine) {
-                anim.lastLineTs = ts;
-            }
+            that._applyTrackProgress(anim, progress, updateLine);
             if (progress >= 1) {
+                anim.lastLineTs = ts;
                 anim.running = false;
                 anim.paused = false;
+                $(document).trigger("trackProgress", [{
+                    progress: 1,
+                    ts: that._seekTs(anim, 1)
+                }]);
                 $(document).trigger("trackAnimationEnd");
                 return;
+            }
+            if (updateLine) {
+                anim.lastLineTs = ts;
+                $(document).trigger("trackProgress", [{
+                    progress: progress,
+                    ts: that._seekTs(anim, progress)
+                }]);
             }
             that._trackFrame(anim);
         });

@@ -519,6 +519,22 @@ body {
     scrollbar-width: thin;
 }
 
+.ys-track-list {
+    max-height: 182px;
+}
+
+@media (max-width: 560px) {
+    .ys-track-list {
+        max-height: 196px;
+    }
+}
+
+@media (max-height: 520px) {
+    .ys-track-list {
+        max-height: 132px;
+    }
+}
+
 .ys-select-indicator {
     flex: 0 0 auto;
     display: flex;
@@ -785,6 +801,94 @@ html[data-theme="dark"] .ys-state-zone {
 
 .ys-hint.is-error {
     color: #dc2626;
+}
+
+/* 滑块（回放范围 / 轨迹位置） */
+.ys-field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ys-field-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ys-accent);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ys-range-field {
+    margin-bottom: 10px;
+}
+
+.ys-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 26px;
+    margin: 0;
+    padding: 0;
+    color: var(--ys-accent);
+    border-radius: 999px;
+    background: linear-gradient(to right,
+            var(--ys-accent) 0 var(--ys-range-pct, 0%),
+            var(--ys-border) var(--ys-range-pct, 0%) 100%);
+    background-size: 100% 5px;
+    background-position: center;
+    background-repeat: no-repeat;
+    cursor: pointer;
+}
+
+.ys-range:focus {
+    outline: none;
+}
+
+.ys-range::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.ys-range::-moz-range-track {
+    height: 5px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.ys-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -6.5px;
+    border-radius: 50%;
+    background: var(--ys-accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .35);
+    transition: transform .1s ease;
+}
+
+.ys-range::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--ys-accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .35);
+}
+
+.ys-range:active::-webkit-slider-thumb {
+    transform: scale(1.12);
+}
+
+html[data-theme="dark"] .ys-range::-webkit-slider-thumb {
+    border-color: #1f2631;
+}
+
+html[data-theme="dark"] .ys-range::-moz-range-thumb {
+    border-color: #1f2631;
 }
 
 /* 轨迹播放控制（两个按钮，文字统一为 2 个字） */
@@ -1707,6 +1811,25 @@ html[data-theme="dark"] .ys-track-marker-badge {
         transition: transform .22s ease, height .18s ease;
     }
 
+    .ys-range {
+        height: 32px;
+    }
+
+    .ys-range::-webkit-slider-thumb {
+        width: 22px;
+        height: 22px;
+        margin-top: -8.5px;
+    }
+
+    .ys-range::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+    }
+
+    .ys-field-value {
+        font-size: 12.5px;
+    }
+
     .ys-scroll-list {
         max-height: none;
         overflow: visible;
@@ -1899,5 +2022,18 @@ html[data-theme="dark"] .ys-track-marker-badge {
     *::after {
         transition-duration: .01ms !important;
         animation-duration: .01ms !important;
+    }
+}
+
+/* 轨迹页签列表在手机/矮屏上保持限高（放在最后以覆盖 .ys-scroll-list 的通用规则） */
+@media (max-width: 560px) {
+    .ys-scroll-list.ys-track-list {
+        max-height: 196px;
+    }
+}
+
+@media (max-height: 520px) {
+    .ys-scroll-list.ys-track-list {
+        max-height: 132px;
     }
 }

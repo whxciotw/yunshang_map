@@ -64,7 +64,7 @@ $(function () {
 
     initStaticUi();
     loadState();
-    setTimeRangeToToday();
+    updateTrackRangeLabel();
     bindUi();
     switchTab(activeTab);
 
@@ -134,6 +134,12 @@ function initStaticUi() {
     $("#btnPanelClose").attr("title", "关闭").attr("aria-label", "关闭");
     $("#trackHint").text("");
     $("#routeHint").text("");
+    $("#trackRange").val(String(trackRangeIndex));
+    updateTrackRangeLabel();
+    $("#seekField").attr("hidden", "hidden");
+    $("#seekPosLabel").text("--");
+    $("#trackSeek").val("0");
+    updateRangeFill(document.getElementById("trackSeek"));
     $("#footerTip").text("");
     $("#btnQuery").text(t("trackShow"));
     $("#btnBackhome").text(t("backShow"));
@@ -225,14 +231,37 @@ function bindUi() {
         }
     });
 
-    /* 轨迹页签 */
-    $("#queryTimeFrom, #queryTimeTo").on("change", function () {
-        validTimeRange(true);
+    /* 轨迹页签：回放范围滑块 + 轨迹位置滑块 */
+    $("#trackRange").on("input", function () {
+        trackRangeIndex = parseInt(this.value, 10) || 0;
+        updateTrackRangeLabel();
     });
-    $(document).on("click", ".ys-chip[data-range]", function () {
-        applyTimeRangePreset($(this).attr("data-range"));
-        $(".ys-chip[data-range]").removeClass("is-active");
-        $(this).addClass("is-active");
+    $("#trackRange").on("change", function () {
+        SaveState();
+        if (trackVisible) {
+            loadSelectedTracks();
+        }
+    });
+    $("#trackSeek").on("input", function () {
+        seekDragging = true;
+        var progress = parseFloat(this.value) / 1000;
+        if (playbackState === "playing") {
+            map.DrawPause();
+            playbackState = "paused";
+            updatePlaybackUi();
+        }
+        updateRangeFill(this);
+        map.seek(progress);
+        if (progress >= 0.999) {
+            playbackState = "finished";
+            updatePlaybackUi();
+        } else if (playbackState !== "paused") {
+            playbackState = "paused";
+            updatePlaybackUi();
+        }
+    });
+    $("#trackSeek").on("change", function () {
+        seekDragging = false;
     });
     $("#btnQuery").on("click", onTrackButtonClick);
     $("#trackDeviceList").on("change", "input[type=checkbox]", function () {
@@ -905,64 +934,74 @@ function updateTrackColorDots() {
     });
 }
 
+/* 回放范围：从 5 分钟到 7 天（对数感分布） */
+var TRACK_RANGES = [
+    { hours: 5 / 60, label: "近 5 分钟" },
+    { hours: 15 / 60, label: "近 15 分钟" },
+    { hours: 0.5, label: "近 30 分钟" },
+    { hours: 1, label: "近 1 小时" },
+    { hours: 3, label: "近 3 小时" },
+    { hours: 6, label: "近 6 小时" },
+    { hours: 12, label: "近 12 小时" },
+    { hours: 24, label: "近 1 天" },
+    { hours: 48, label: "近 2 天" },
+    { hours: 168, label: "近 7 天" }
+];
+var trackRangeIndex = 7;
+var seekDragging = false;
+
+function getTrackRange() {
+    return TRACK_RANGES[trackRangeIndex] || TRACK_RANGES[7];
+}
+
+function updateTrackRangeLabel() {
+    var label = document.getElementById("trackRangeLabel");
+    if (label) {
+        label.textContent = getTrackRange().label;
+    }
+    updateRangeFill(document.getElementById("trackRange"));
+}
+
 function getTimeRange() {
-    return {
-        from: document.getElementById("queryTimeFrom").value,
-        to: document.getElementById("queryTimeTo").value
-    };
+    var hours = getTrackRange().hours;
+    var to = new Date();
+    var from = new Date(to.getTime() - hours * 3600 * 1000);
+    return { from: from, to: to };
 }
 
-function validTimeRange(notify) {
-    var range = getTimeRange();
-    if (!range.from || !range.to) {
-        if (notify) {
-            ysToast(t("invalidTimeRange"), true);
-        }
-        return false;
+/** 更新 range 滑块的已选填充比例 */
+function updateRangeFill(el) {
+    if (!el) {
+        return;
     }
-    if (new Date(range.from).getTime() >= new Date(range.to).getTime()) {
-        if (notify) {
-            ysToast(t("invalidTimeRange"), true);
-        }
-        return false;
+    var max = parseFloat(el.max) || 100;
+    var value = parseFloat(el.value) || 0;
+    var pct = Math.max(0, Math.min(100, (value / max) * 100));
+    el.style.setProperty("--ys-range-pct", pct + "%");
+}
+
+/** 把进度条时间戳格式化为 “MM/DD HH:mm” */
+function formatSeekTime(ts) {
+    if (!ts) {
+        return "--";
     }
-    return true;
-}
-
-function fmtLocal(d) {
-    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) +
-        "T" + p(d.getHours()) + ":" + p(d.getMinutes());
-}
-
-function setTimeRangeToToday() {
-    var now = new Date();
-    var from = new Date(now);
-    from.setHours(0, 0, 0, 0);
-    var to = new Date(now);
-    to.setHours(23, 59, 0, 0);
-    document.getElementById("queryTimeFrom").value = fmtLocal(from);
-    document.getElementById("queryTimeTo").value = fmtLocal(to);
-}
-
-function applyTimeRangePreset(range) {
-    var now = new Date();
-    var from = new Date(now);
-    var to = new Date(now);
-    if (range === "today") {
-        from.setHours(0, 0, 0, 0);
-        to.setHours(23, 59, 0, 0);
-    } else if (range === "yesterday") {
-        from.setDate(now.getDate() - 1);
-        from.setHours(0, 0, 0, 0);
-        to.setDate(now.getDate() - 1);
-        to.setHours(23, 59, 0, 0);
-    } else {
-        from.setDate(now.getDate() - 6);
-        from.setHours(0, 0, 0, 0);
-        to.setHours(23, 59, 0, 0);
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) {
+        return "--";
     }
-    document.getElementById("queryTimeFrom").value = fmtLocal(from);
-    document.getElementById("queryTimeTo").value = fmtLocal(to);
+    return (d.getMonth() + 1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+
+function updateSeekUi(progress, ts) {
+    var seek = document.getElementById("trackSeek");
+    if (seek && !seekDragging) {
+        seek.value = String(Math.round(Math.max(0, Math.min(1, progress)) * 1000));
+        updateRangeFill(seek);
+    }
+    var label = document.getElementById("seekPosLabel");
+    if (label) {
+        label.textContent = ts ? formatSeekTime(ts) : (Math.round(progress * 100) + "%");
+    }
 }
 
 function setTrackHint(text, isError) {
@@ -1037,15 +1076,14 @@ function stopPlayback() {
         return;
     }
     map.DrawStop();
+    map.seek(0);
     resetPlaybackUi();
+    updatePlaybackUi();
     updateTrackHintText();
 }
 
 /** 一次加载并同时显示多个设备的轨迹 */
 function loadSelectedTracks() {
-    if (!validTimeRange(true)) {
-        return;
-    }
     var ids = selectedTrackIds();
     if (!ids.length) {
         /* 默认选中第一个可用设备，方便直接查看 */
@@ -1109,7 +1147,9 @@ function loadSelectedTracks() {
         activeDeviceId = trackedDeviceId;
         $("#btnQuery").text(t("trackHide"));
         $("#playbackActions").removeAttr("hidden");
+        $("#seekField").removeAttr("hidden");
         resetPlaybackUi();
+        map.seek(0);
         var info = map.getTrackInfo ? map.getTrackInfo() : null;
         lastTrackDuration = info && info.durationSec ? info.durationSec : 0;
         lastTrackOriginalCount = originalTotal;
@@ -1159,9 +1199,10 @@ function updateTrackHintText() {
             names.push(device.name);
         }
     }
-    var hint = "已加载 " + trackedDeviceIds.length + " 个设备的轨迹";
+    var rangeLabel = getTrackRange().label;
+    var hint = "已加载 " + trackedDeviceIds.length + " 个设备的轨迹（" + rangeLabel + "）";
     if (names.length === 1) {
-        hint = "已加载「" + names[0] + "」的轨迹";
+        hint = "已加载「" + names[0] + "」的轨迹（" + rangeLabel + "）";
     } else if (names.length > 1) {
         hint += "（" + names.slice(0, 3).join("、") + (names.length > 3 ? " 等" : "") + "）";
     }
@@ -1177,6 +1218,7 @@ function updateTrackHintText() {
 }
 
 function hideTrack() {
+    trackRequestSeq++; /* 取消仍在加载中的轨迹请求 */
     map.DrawStop();
     map.query(null, false);
     trackVisible = false;
@@ -1185,6 +1227,10 @@ function hideTrack() {
     resetPlaybackUi();
     $("#btnQuery").text(t("trackShow"));
     $("#playbackActions").attr("hidden", "hidden");
+    $("#seekField").attr("hidden", "hidden");
+    $("#seekPosLabel").text("--");
+    $("#trackSeek").val("0");
+    updateRangeFill(document.getElementById("trackSeek"));
     setTrackHint("");
     renderTrackDeviceList();
     SaveState();
@@ -1378,6 +1424,25 @@ $(document).on("trackAnimationEnd", function () {
     if (trackVisible) {
         playbackState = "finished";
         updatePlaybackUi();
+        var seek = document.getElementById("trackSeek");
+        if (seek && !seekDragging) {
+            seek.value = "1000";
+            updateRangeFill(seek);
+        }
+    }
+});
+
+$(document).on("trackProgress", function (event, info) {
+    if (!trackVisible || !info) {
+        return;
+    }
+    updateSeekUi(info.progress, info.ts);
+});
+
+$(document).on("mapRebuilt", function () {
+    if (trackVisible) {
+        map.seek(0);
+        updateSeekUi(0, null);
     }
 });
 
@@ -1661,7 +1726,8 @@ function SaveState() {
         hidden: hidden,
         tab: activeTab,
         trackSpeed: trackSpeedMultiplier,
-        trackSelected: trackSelectedOrder.slice()
+        trackSelected: trackSelectedOrder.slice(),
+        trackRange: trackRangeIndex
     };
     try {
         storage.setItem(STORAGE_STATE, JSON.stringify(state));
@@ -1685,6 +1751,9 @@ function loadState() {
     followDeviceId = state.followDevice || null;
     activeTab = state.tab || "devices";
     trackSpeedMultiplier = state.trackSpeed || 1;
+    if (typeof state.trackRange === "number" && state.trackRange >= 0 && state.trackRange < TRACK_RANGES.length) {
+        trackRangeIndex = state.trackRange;
+    }
     if ($.isArray(state.routeSelected)) {
         for (var i = 0; i < state.routeSelected.length; i++) {
             routeSelected[state.routeSelected[i]] = true;
@@ -1707,4 +1776,6 @@ function loadState() {
         .filter('[data-mode="' + backhomeTrackType + '"]').addClass("is-active");
     $("#trackSpeed [data-speed]").removeClass("is-active")
         .filter('[data-speed="' + trackSpeedMultiplier + '"]').addClass("is-active");
+    $("#trackRange").val(String(trackRangeIndex));
+    updateTrackRangeLabel();
 }
