@@ -13,6 +13,14 @@ MapController.prototype = {
         return this.maps[this.currentMapIndex];
     },
 
+    reverseGeocode: function (lng, lat, callback) {
+        if (this.getMap().reverseGeocode) {
+            this.getMap().reverseGeocode(lng, lat, callback);
+        } else {
+            callback("");
+        }
+    },
+
     seek: function (progress) {
         if (this.getMap().seek) {
             this.getMap().seek(progress);

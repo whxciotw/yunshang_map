@@ -2106,3 +2106,44 @@ html[data-theme="dark"] .ys-track-marker-badge {
         overscroll-behavior: contain;
     }
 }
+
+/* 轨迹页抽屉紧凑模式：高度变小时先收起设备列表，再收起次要控件，保留播放与轨迹位置 */
+.ys-panel-card.is-compact-1 .ys-scroll-list.ys-track-list {
+    max-height: 112px;
+}
+
+.ys-panel-card.is-compact-1 #trackHint {
+    display: none;
+}
+
+.ys-panel-card.is-compact-2 .ys-track-device-field,
+.ys-panel-card.is-compact-2 .ys-range-scope,
+.ys-panel-card.is-compact-2 .ys-speed-field,
+.ys-panel-card.is-compact-2 .ys-query-actions,
+.ys-panel-card.is-compact-2 #trackHint {
+    display: none;
+}
+
+.ys-panel-card.is-compact-2 .ys-playback-actions {
+    margin-top: 0;
+    margin-bottom: 6px;
+}
+
+.ys-panel-card.is-compact-3 .ys-tabs,
+.ys-panel-card.is-compact-3 .ys-panel-footer {
+    display: none;
+}
+
+.ys-panel-card.is-compact-3 .ys-panel-header {
+    padding-top: 6px;
+    padding-bottom: 2px;
+}
+
+.ys-panel-card.is-compact-3 .ys-panel-body {
+    padding-top: 4px;
+}
+
+.ys-panel-card.is-compact-3 .ys-seek-field,
+.ys-panel-card.is-compact-3 #seekField {
+    margin-bottom: 4px;
+}

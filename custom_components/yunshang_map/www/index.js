@@ -374,6 +374,7 @@ function openPanel() {
     layoutPanel();
     requestAnimationFrame(function () {
         panel.classList.add("is-open");
+        updatePanelCompact();
     });
     syncToolbarState(["devicelist"]);
     renderDeviceList(true);
@@ -412,6 +413,7 @@ function switchTab(tab) {
         body.scrollTop = 0;
     }
     SaveState();
+    updatePanelCompact();
     if (tab === "track") {
         renderTrackDeviceList();
     } else if (tab === "route") {
@@ -425,6 +427,21 @@ function isSheetMode() {
 
 function isSidePanelMode() {
     return window.innerHeight <= 520 && window.innerWidth >= 600;
+}
+
+/** 根据抽屉高度切换紧凑模式：先收起设备列表，再收起次要控件，保留播放/轨迹位置给地图 */
+function updatePanelCompact() {
+    var card = document.querySelector('#devicePanel .ys-panel-card');
+    if (!card) {
+        return;
+    }
+    var trackPane = document.querySelector('.ys-pane[data-pane="track"]');
+    var apply = !!(trackPane && trackPane.classList.contains("is-active"));
+    var loaded = !!trackVisible;
+    var h = card.clientHeight;
+    card.classList.toggle("is-compact-1", apply && h < 560);
+    card.classList.toggle("is-compact-2", apply && loaded && h < 470);
+    card.classList.toggle("is-compact-3", apply && loaded && h < 350);
 }
 
 function layoutPanel() {
@@ -444,6 +461,7 @@ function layoutPanel() {
 
 function onViewportChange() {
     layoutPanel();
+    updatePanelCompact();
 }
 
 /* 手机底部抽屉：拖动调节高度 / 轻点收起展开；桌面端：拖动移动浮窗 */
@@ -504,6 +522,7 @@ function initPanelDrag() {
             var h = sheetDrag.startH - dy;
             h = Math.max(vh * 0.26, Math.min(h, vh - 8));
             card.style.height = Math.round(h) + "px";
+            updatePanelCompact();
             return;
         }
         if (!dragging) {
@@ -542,6 +561,7 @@ function initPanelDrag() {
                     }
                 }
                 card.style.height = Math.round(best) + "px";
+                updatePanelCompact();
             } else {
                 /* 轻点把手：展开 / 收起切换 */
                 card.style.height = (h > vh * 0.72)
@@ -560,6 +580,13 @@ function initPanelDrag() {
 
     header.addEventListener("pointerup", endDrag);
     header.addEventListener("pointercancel", endDrag);
+
+    /* 高度变化动画结束后刷新紧凑模式（吸附/回弹等） */
+    card.addEventListener("transitionend", function (event) {
+        if (event.propertyName === "height") {
+            updatePanelCompact();
+        }
+    });
 }
 
 /* ================= 设备列表 ================= */
@@ -954,6 +981,8 @@ var TRACK_RANGES = [
 ];
 var trackRangeIndex = 7;
 var seekDragging = false;
+var seekGeoToken = 0;
+var seekGeoTimer = null;
 
 function getTrackRange() {
     return TRACK_RANGES[trackRangeIndex] || TRACK_RANGES[7];
@@ -997,6 +1026,28 @@ function formatSeekTime(ts) {
     return (d.getMonth() + 1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
 }
 
+/** 无区域/地址时，用经纬度反查地址（带节流与缓存） */
+function requestSeekGeocode(lon, lat, token) {
+    seekGeoToken = token;
+    if (seekGeoTimer) {
+        clearTimeout(seekGeoTimer);
+    }
+    seekGeoTimer = setTimeout(function () {
+        var current = seekGeoToken;
+        map.reverseGeocode(lon, lat, function (address) {
+            if (current !== seekGeoToken || !address) {
+                return;
+            }
+            var addr = document.getElementById("seekAddrLabel");
+            if (addr) {
+                addr.textContent = address;
+                addr.title = address;
+                addr.hidden = false;
+            }
+        });
+    }, 260);
+}
+
 function updateSeekUi(info) {
     if (!info) {
         return;
@@ -1013,6 +1064,14 @@ function updateSeekUi(info) {
         addr.textContent = text;
         addr.title = text;
         addr.hidden = !text;
+        if (!text && info.lon !== undefined && info.lon !== null) {
+            requestSeekGeocode(info.lon, info.lat, ++seekGeoToken);
+        } else {
+            seekGeoToken++;
+            if (seekGeoTimer) {
+                clearTimeout(seekGeoTimer);
+            }
+        }
     }
     var label = document.getElementById("seekPosLabel");
     if (label) {
@@ -1173,6 +1232,7 @@ function loadSelectedTracks() {
         updateTrackHintText();
         renderTrackDeviceList();
         renderDeviceList();
+        updatePanelCompact();
         SaveState();
     }
 
@@ -1249,6 +1309,7 @@ function hideTrack() {
     updateRangeFill(document.getElementById("trackSeek"));
     setTrackHint("");
     renderTrackDeviceList();
+    updatePanelCompact();
     SaveState();
 }
 

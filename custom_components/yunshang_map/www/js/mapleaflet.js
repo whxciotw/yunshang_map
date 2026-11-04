@@ -42,6 +42,8 @@ function MapLeaflet() {
     };
     this._amapLoading = false;
     this._amapCallbacks = [];
+    this._geocoder = null;
+    this._geoCache = {};
 }
 
 /* ============================== 底图定义 ============================== */
@@ -1095,7 +1097,9 @@ MapLeaflet.prototype = {
         if (!address) {
             address = point.address || "";
         }
-        return { progress: progress, ts: ts, address: address };
+        var lon = point.longitude !== undefined ? Number(point.longitude) : null;
+        var lat = point.latitude !== undefined ? Number(point.latitude) : null;
+        return { progress: progress, ts: ts, address: address, lon: lon, lat: lat };
     },
 
     /** 根据坐标返回所在区域名称（zone.home 等） */
@@ -1112,6 +1116,37 @@ MapLeaflet.prototype = {
             }
         }
         return "";
+    },
+
+    /** 逆地理编码（高德 JS API，按需加载；带缓存） */
+    reverseGeocode: function (lng, lat, callback) {
+        var that = this;
+        if (lng === null || lng === undefined || lat === null || lat === undefined) {
+            callback("");
+            return;
+        }
+        var cacheKey = Number(lng).toFixed(5) + "," + Number(lat).toFixed(5);
+        if (Object.prototype.hasOwnProperty.call(this._geoCache, cacheKey)) {
+            callback(this._geoCache[cacheKey]);
+            return;
+        }
+        this._ensureAmap(function () {
+            try {
+                if (!that._geocoder) {
+                    that._geocoder = new AMap.Geocoder({});
+                }
+                that._geocoder.getAddress([Number(lng), Number(lat)], function (status, result) {
+                    var address = "";
+                    if (status === "complete" && result && result.regeocode) {
+                        address = result.regeocode.formattedAddress || "";
+                    }
+                    that._geoCache[cacheKey] = address;
+                    callback(address);
+                });
+            } catch (e) {
+                callback("");
+            }
+        });
     },
 
     /** 拖动进度条：跳转到轨迹的任意位置 */
@@ -1291,7 +1326,7 @@ MapLeaflet.prototype = {
         var script = document.createElement("script");
         script.src = "https://webapi.amap.com/maps?v=1.4.15&key=" +
             encodeURIComponent(window.GaodeMapKey || "") +
-            "&plugin=AMap.Driving,AMap.Walking,AMap.Riding";
+            "&plugin=AMap.Driving,AMap.Walking,AMap.Riding,AMap.Geocoder";
         script.onload = function () {
             var done = function () {
                 that._amapLoading = false;
@@ -1303,7 +1338,7 @@ MapLeaflet.prototype = {
             };
             /* AMap 的插件是异步加载的，等 plugin 回调后再执行 */
             if (window.AMap && typeof window.AMap.plugin === "function") {
-                window.AMap.plugin(["AMap.Driving", "AMap.Walking", "AMap.Riding"], done);
+                window.AMap.plugin(["AMap.Driving", "AMap.Walking", "AMap.Riding", "AMap.Geocoder"], done);
             } else {
                 done();
             }
