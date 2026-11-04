@@ -2260,3 +2260,28 @@ html[data-theme="dark"] .ys-mode-switch button.is-active {
     color: var(--ys-text-dim);
     white-space: nowrap;
 }
+
+/* 收起设备列表：只保留页签、轨迹/路线主按钮、播放与位置拖动，尽量减少地图遮挡 */
+.ys-panel-card.lists-collapsed .ys-toolbar,
+.ys-panel-card.lists-collapsed #deviceList,
+.ys-panel-card.lists-collapsed .ys-track-device-field,
+.ys-panel-card.lists-collapsed .ys-range-scope,
+.ys-panel-card.lists-collapsed .ys-speed-field,
+.ys-panel-card.lists-collapsed #trackHint,
+.ys-panel-card.lists-collapsed .ys-panel-footer,
+.ys-panel-card.lists-collapsed .ys-pane[data-pane="route"] > .ys-field:first-child {
+    display: none;
+}
+
+.ys-collapsed-hint {
+    padding: 10px 6px 14px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--ys-text-dim);
+}
+
+.ys-panel-card.lists-collapsed .ys-panel-header-actions #btnPanelMinimize.is-on {
+    background: var(--ys-accent-soft);
+    color: var(--ys-accent);
+}

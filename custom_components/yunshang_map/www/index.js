@@ -28,6 +28,7 @@ var trackSelectedOrder = []; // 选择顺序（决定轨迹颜色）
 var trackedDeviceIds = [];   // 已加载轨迹的设备
 var playbackState = "idle";  // idle | playing | paused
 var trackRealtimeHidden = false; // 回放轨迹时隐藏实时设备标记
+var listsCollapsed = false; // 设备列表是否已收起（收起后只保留操作按钮/拖拽条）
 var trackVisible = false;
 var backhomeTrackEnabled = false;
 var backhomeTrackType = "drive";
@@ -133,10 +134,12 @@ function initAuthToken() {
 }
 
 function initStaticUi() {
+    document.getElementById("btnPanelMinimize").innerHTML = ysIcon("chevron-down");
     document.getElementById("btnPanelRefresh").innerHTML = ysIcon("refresh");
     document.getElementById("btnPanelClose").innerHTML = ysIcon("close");
     document.getElementById("searchIcon").innerHTML = ysIcon("magnify");
     document.getElementById("fitViewIcon").innerHTML = ysIcon("image-filter-center-focus");
+    $("#btnPanelMinimize").attr("title", "收起设备列表").attr("aria-label", "收起设备列表").attr("aria-expanded", "true");
     $("#btnPanelRefresh").attr("title", "刷新设备位置").attr("aria-label", "刷新设备位置");
     $("#btnPanelClose").attr("title", "关闭").attr("aria-label", "关闭");
     $("#trackHint").text("");
@@ -183,6 +186,9 @@ function bindUi() {
     });
 
     /* 面板开合 */
+    $("#btnPanelMinimize").on("click", function () {
+        setListsCollapsed(!listsCollapsed);
+    });
     $("#btnPanelClose").on("click", closePanel);
     $("#btnPanelRefresh").on("click", function () {
         var btn = this;
@@ -403,9 +409,12 @@ function openPanel() {
     panelVisible = true;
     document.body.classList.add("ys-panel-open");
     layoutPanel();
+    if (listsCollapsed) {
+        setListsCollapsed(false, true);
+    }
     requestAnimationFrame(function () {
         panel.classList.add("is-open");
-        updatePanelCompact();
+        schedulePanelCompact();
     });
     syncToolbarState(["devicelist"]);
     renderDeviceList(true);
@@ -444,12 +453,48 @@ function switchTab(tab) {
         body.scrollTop = 0;
     }
     SaveState();
-    updatePanelCompact();
     if (tab === "track") {
         renderTrackDeviceList();
         refreshDevices(false);
     } else if (tab === "route") {
         renderRouteList();
+    }
+    schedulePanelCompact();
+}
+
+/** 内容变化后（下一帧/稍后）重新评估抽屉紧凑模式，避免读到旧高度 */
+function schedulePanelCompact() {
+    if (schedulePanelCompact.timer) {
+        clearTimeout(schedulePanelCompact.timer);
+    }
+    requestAnimationFrame(updatePanelCompact);
+    schedulePanelCompact.timer = setTimeout(function () {
+        schedulePanelCompact.timer = null;
+        updatePanelCompact();
+    }, 80);
+}
+
+/** 收起 / 展开设备列表（收起后保留页签、范围、播放、路线等操作） */
+function setListsCollapsed(collapsed, silent) {
+    listsCollapsed = !!collapsed;
+    var card = document.querySelector('#devicePanel .ys-panel-card');
+    if (card) {
+        card.classList.toggle("lists-collapsed", listsCollapsed);
+    }
+    var btn = document.getElementById("btnPanelMinimize");
+    if (btn) {
+        btn.innerHTML = ysIcon(listsCollapsed ? "chevron-up" : "chevron-down");
+        btn.title = listsCollapsed ? "展开设备列表" : "收起设备列表";
+        btn.setAttribute("aria-label", btn.title);
+        btn.setAttribute("aria-expanded", listsCollapsed ? "false" : "true");
+        btn.classList.toggle("is-on", listsCollapsed);
+    }
+    var hint = document.getElementById("listsCollapsedHint");
+    if (hint) {
+        hint.hidden = !listsCollapsed;
+    }
+    if (!silent) {
+        schedulePanelCompact();
     }
 }
 
@@ -470,6 +515,10 @@ function updatePanelCompact() {
     var trackPane = document.querySelector('.ys-pane[data-pane="track"]');
     var apply = !!(trackPane && trackPane.classList.contains("is-active"));
     var loaded = !!trackVisible;
+    if (listsCollapsed) {
+        card.classList.remove("is-compact-1", "is-compact-2", "is-compact-3");
+        return;
+    }
     var h = card.clientHeight;
     card.classList.toggle("is-compact-1", apply && h < 560);
     card.classList.toggle("is-compact-2", apply && loaded && h < 470);
@@ -1006,6 +1055,7 @@ function renderTrackDeviceList() {
     }
     container.innerHTML = html.length ? html.join("") : '<div class="ys-hint">暂无可选设备</div>';
     updatePlaybackUi();
+    schedulePanelCompact();
 }
 
 function updateTrackSelectSelection() {
@@ -1550,7 +1600,7 @@ function loadSelectedTracks() {
         updateTrackHintText();
         renderTrackDeviceList();
         renderDeviceList();
-        updatePanelCompact();
+        schedulePanelCompact();
         SaveState();
     }
 
@@ -1631,7 +1681,7 @@ function hideTrack() {
     updateRangeFill(document.getElementById("trackSeek"));
     setTrackHint("");
     renderTrackDeviceList();
-    updatePanelCompact();
+    schedulePanelCompact();
     SaveState();
 }
 

@@ -18,9 +18,14 @@ Home Assistant 自定义集成 + Lovelace 卡片：在 HA 中显示 `device_trac
 - **回家路线**：驾车 / 骑行 / 步行，并计算回家用时（需要配置高德 Key + jscode）。
 - **多底图**：高德地图 / 卫星、百度地图 / 卫星、OSM，面板底部一键切换；路况、家的位置与范围、设备列表均可开关。
 - **主题**：浅色 / 深色 / 跟随系统，设置会记住，并同步到内嵌卡片。
+- **设备列表可收起**：标题栏新增最小化按钮，收起后只保留页签、回放范围、播放/路线按钮和拖拽条，尽量不挡地图。
 - **移动端**：底部抽屉可拖动，横屏 / 折叠屏自动切换侧边布局。
 
 ![深色主题](docs/preview-dark.jpg)
+
+*收起设备列表后只保留页签、播放/位置拖动和必要按钮，地图视野更大*
+
+![收起设备列表](docs/preview-collapsed.jpg)
 
 ## 安装
 
@@ -65,6 +70,7 @@ aspect_ratio: 16:9
 - **回家路线**：「回家路线」页签勾选设备 →「显示回家路线」，可切换驾车/骑行/步行。
 - **设备详情**：点击地图图标，或双击设备列表中的设备。
 - **卡片**：编辑仪表盘添加「定制地图」卡片，可直接可视化配置实体、缩放、底图、主题等。
+- **收起设备列表**：面板标题栏右侧的下箭头按钮可收起/展开设备列表；收起后回放范围、播放、回家路线等操作仍可用，面板更小、更少遮挡地图。
 
 ![面板与轨迹回放](docs/preview-panel.jpg)
 
@@ -92,6 +98,7 @@ aspect_ratio: 16:9
 ## 致谢
 
 - [dscao/gaode_maps](https://github.com/dscao/gaode_maps)：本项目的直接上游
+- [ryanh7/map-card](https://github.com/ryanh7/map-card)：GPS 精度圈、自动适配视野、实体多选与配置项组织方式的参考
 - [cxlwill/ha-inkwavemap](https://github.com/cxlwill/ha-inkwavemap)、[shaonianzhentan/google_maps](https://github.com/shaonianzhentan/google_maps)：早期参考实现
 - [高德开放平台](https://lbs.amap.com/)：地图服务
 - [Leaflet](https://leafletjs.com/) / [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) / [proj4js](https://github.com/proj4js/proj4js) / [Proj4Leaflet](https://github.com/kartena/Proj4Leaflet)：地图渲染

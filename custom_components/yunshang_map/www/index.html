@@ -15,28 +15,28 @@
 
     <script src="js/jquery-1.12.4.min.js"></script>
 
-    <script src="config.js?v=1.13.0"></script>
-    <script src="js/utils.js?v=1.13.0"></script>
-    <script src="js/language.js?v=1.13.0"></script>
-    <script src="js/theme.js?v=1.13.0"></script>
-    <script src="js/uiicons.js?v=1.13.0"></script>
-    <script src="js/deviceicons.js?v=1.13.0"></script>
-    <script src="js/entityutils.js?v=1.13.0"></script>
+    <script src="config.js?v=1.14.0"></script>
+    <script src="js/utils.js?v=1.14.0"></script>
+    <script src="js/language.js?v=1.14.0"></script>
+    <script src="js/theme.js?v=1.14.0"></script>
+    <script src="js/uiicons.js?v=1.14.0"></script>
+    <script src="js/deviceicons.js?v=1.14.0"></script>
+    <script src="js/entityutils.js?v=1.14.0"></script>
 
-    <script src="js/dock.js?v=1.13.0"></script>
-    <link rel="stylesheet" href="css/dock.css?v=1.13.0">
+    <script src="js/dock.js?v=1.14.0"></script>
+    <link rel="stylesheet" href="css/dock.css?v=1.14.0">
 
     <link rel="stylesheet" href="leaflet/leaflet.css" />
     <link rel="stylesheet" href="leaflet/markercluster.css" />
     <link rel="stylesheet" href="leaflet/markercluster-default.css" />
-    <script src="leaflet/leaflet.js?v=1.13.0"></script>
-    <script src="leaflet/markercluster.js?v=1.13.0"></script>
-    <script src="leaflet/proj4.js?v=1.13.0"></script>
-    <script src="leaflet/proj4leaflet.js?v=1.13.0"></script>
-    <script src="js/geo.js?v=1.13.0"></script>
-    <script src="js/mapleaflet.js?v=1.13.0"></script>
-    <script src="js/map.js?v=1.13.0"></script>
-    <link rel="stylesheet" href="css/map.css?v=1.13.0">
+    <script src="leaflet/leaflet.js?v=1.14.0"></script>
+    <script src="leaflet/markercluster.js?v=1.14.0"></script>
+    <script src="leaflet/proj4.js?v=1.14.0"></script>
+    <script src="leaflet/proj4leaflet.js?v=1.14.0"></script>
+    <script src="js/geo.js?v=1.14.0"></script>
+    <script src="js/mapleaflet.js?v=1.14.0"></script>
+    <script src="js/map.js?v=1.14.0"></script>
+    <link rel="stylesheet" href="css/map.css?v=1.14.0">
 
 </head>
 
@@ -63,6 +63,8 @@
                     <span id="panelCount" class="ys-count">0</span>
                 </div>
                 <div class="ys-panel-header-actions">
+                    <button type="button" id="btnPanelMinimize" class="ys-icon-btn" title="收起设备列表"
+                        aria-label="收起设备列表" aria-expanded="true"></button>
                     <button type="button" id="btnPanelRefresh" class="ys-icon-btn" title="刷新设备位置"></button>
                     <button type="button" id="btnPanelClose" class="ys-icon-btn" title="关闭"></button>
                 </div>
@@ -84,6 +86,7 @@
                     </div>
                     <div class="ys-device-list" id="deviceList"></div>
                     <div class="ys-empty" id="deviceEmpty" hidden>未发现可追踪的设备</div>
+                    <div class="ys-collapsed-hint" id="listsCollapsedHint" hidden>设备列表已收起，点击右上角按钮展开</div>
                 </div>
 
                 <!-- 轨迹回放 -->
@@ -208,7 +211,7 @@
         <img id="toolbar_theme" src="images/toolbar_theme_auto.png" width="42" alt="主题模式" title="主题模式">
     </div>
 
-    <script src="index.js?v=1.13.0"></script>
+    <script src="index.js?v=1.14.0"></script>
 </body>
 
 </html>

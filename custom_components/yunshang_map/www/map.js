@@ -16,7 +16,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   const html = LitElement.prototype.html;
   const css = LitElement.prototype.css;
 
-  const CARD_VERSION = "1.13.0";
+  const CARD_VERSION = "1.14.0";
 
   const MAP_TYPES = [
     { value: "amap", label: "高德地图" },
