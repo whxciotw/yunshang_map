@@ -7,8 +7,8 @@
                 "data": {
                     "longtoken": "Home Assistant 长期访问令牌（可选；在 HA 内嵌显示会自动复用当前登录会话，仅独立浏览器打开地图页面时需要）",
                     "trackerids": "追踪设备",
-                    "gaodekey": "高德地图 Web 端 Key（不正确将不显示回家路线和时间，且无法使用深色地图）",
-                    "jscode": "安全密钥 jscode"
+                    "gaodekey": "高德地图 Web 端 Key（可选；使用高德底图/回家路线/地址反查时需要）",
+                    "jscode": "高德安全密钥 jscode（可选；回家路线与地址反查需要，旧的 Key 可留空）"
                 }
             }
         },
@@ -25,8 +25,8 @@
                 "data": {
                     "longtoken": "Home Assistant 长期访问令牌（可选；在 HA 内嵌显示会自动复用当前登录会话，仅独立浏览器打开地图页面时需要）",
                     "trackerids": "追踪设备（不选择则显示所有设备）",
-                    "gaodekey": "高德地图 Web 端 Key（不正确将不显示回家路线和时间，且无法使用深色地图）",
-                    "jscode": "安全密钥 jscode"
+                    "gaodekey": "高德地图 Web 端 Key（可选；使用高德底图/回家路线/地址反查时需要）",
+                    "jscode": "高德安全密钥 jscode（可选；回家路线与地址反查需要，旧的 Key 可留空）"
                 }
             }
         }

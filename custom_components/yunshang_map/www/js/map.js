@@ -82,7 +82,7 @@ MapController.prototype = {
         this.getMap().center(coordinate);
     },
 
-    /** 切换底图：amap / amap-satellite / amap-traffic / baidu / baidu-satellite / baidu-traffic / osm / osm-dark */
+    /** 切换底图：amap / amap-satellite / baidu / baidu-satellite / osm */
     setBasemap: function (type) {
         this.getMap().setBasemap(type);
     },

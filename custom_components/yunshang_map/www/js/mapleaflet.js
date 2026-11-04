@@ -65,15 +65,6 @@ var LEAFLET_BASEMAPS = {
         minZoom: 3,
         maxZoom: 18
     },
-    "amap-traffic": {
-        label: "高德路况",
-        crs: "gcj",
-        url: "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
-        subdomains: "1234",
-        minZoom: 3,
-        maxZoom: 18,
-        traffic: true
-    },
     baidu: {
         label: "百度地图",
         crs: "bd09",
@@ -91,16 +82,6 @@ var LEAFLET_BASEMAPS = {
         tms: true,
         minZoom: 4,
         maxZoom: 18
-    },
-    "baidu-traffic": {
-        label: "百度路况",
-        crs: "bd09",
-        url: "https://maponline{s}.bdimg.com/onlinelabel/?qt=tile&x={x}&y={y}&z={z}&styles=pl&scaler=1&p=1",
-        subdomains: "0123",
-        tms: true,
-        minZoom: 4,
-        maxZoom: 18,
-        traffic: true
     },
     osm: {
         label: "OSM 地图",
@@ -224,11 +205,8 @@ MapLeaflet.prototype = {
         var that = this;
         var def = this._currentBasemap();
 
-        /* 保留当前视野与缩放 */
+        /* 关闭旧地图（视野中心已由 setBasemap 用旧底图坐标系计算好） */
         if (this.map) {
-            this.state.zoom = this.map.getZoom();
-            var center = this.map.getCenter();
-            this.state.centerWgs = this._fromLatLng(center);
             this.map.remove();
             this.map = null;
         }
@@ -328,6 +306,11 @@ MapLeaflet.prototype = {
     setBasemap: function (type) {
         if (!LEAFLET_BASEMAPS[type] || type === this.state.mapType) {
             return;
+        }
+        /* 先用“当前（旧）底图”的坐标系保存视野中心和缩放，再切换底图 */
+        if (this.map) {
+            this.state.zoom = this.map.getZoom();
+            this.state.centerWgs = this._fromLatLng(this.map.getCenter());
         }
         this.state.mapType = type;
         try {
@@ -1121,6 +1104,10 @@ MapLeaflet.prototype = {
     /** 逆地理编码（高德 JS API，按需加载；带缓存） */
     reverseGeocode: function (lng, lat, callback) {
         var that = this;
+        if (!window.GaodeMapKey || !window.GaodeMapjscode) {
+            callback("");
+            return;
+        }
         if (lng === null || lng === undefined || lat === null || lat === undefined) {
             callback("");
             return;
@@ -1311,6 +1298,9 @@ MapLeaflet.prototype = {
 
     _ensureAmap: function (callback) {
         var that = this;
+        if (!window.GaodeMapKey) {
+            return;
+        }
         if (window.AMap) {
             callback();
             return;
@@ -1364,6 +1354,9 @@ MapLeaflet.prototype = {
 
     drawdrivingmarker: function (deviceId, homePoint, tracktype) {
         var that = this;
+        if (!window.GaodeMapKey || !window.GaodeMapjscode) {
+            return;
+        }
         var device = this.state.devices[deviceId];
         if (!device || !homePoint) {
             return;

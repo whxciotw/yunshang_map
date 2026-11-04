@@ -68,6 +68,8 @@ $(function () {
     initStaticUi();
     loadState();
     updateTrackRangeLabel();
+    applyRangeModeUi();
+    updateAmapCapabilityUi();
     bindUi();
     switchTab(activeTab);
 
@@ -243,6 +245,30 @@ function bindUi() {
     $("#trackRange").on("change", function () {
         SaveState();
         if (trackVisible) {
+            loadSelectedTracks();
+        }
+    });
+    $("#rangeModeSwitch").on("click", "button[data-mode]", function () {
+        var mode = $(this).attr("data-mode");
+        if (!mode || mode === trackRangeMode) {
+            return;
+        }
+        trackRangeMode = mode;
+        if (mode === "date") {
+            ensureDateRangeDefaults();
+            validateDateRange(false);
+        }
+        applyRangeModeUi();
+        SaveState();
+        if (trackVisible) {
+            loadSelectedTracks();
+        }
+    });
+    $("#trackDateFrom, #trackDateTo").on("change", function () {
+        var valid = validateDateRange(true);
+        updateTrackRangeLabel();
+        SaveState();
+        if (valid && trackVisible) {
             loadSelectedTracks();
         }
     });
@@ -974,6 +1000,20 @@ var TRACK_RANGES = [
     { hours: 168, label: "近 7 天" }
 ];
 var trackRangeIndex = 7;
+var trackRangeMode = "slider"; /* slider | date */
+
+/* 高德服务能力（回家路线 / 地址反查需要 Key + jscode） */
+function getAmapCapability() {
+    var key = (window.GaodeMapKey || "").trim();
+    var jscode = (window.GaodeMapjscode || "").trim();
+    if (!key) {
+        return { ok: false, reason: "未配置高德地图 Key，回家路线与地址反查不可用" };
+    }
+    if (!jscode) {
+        return { ok: false, reason: "未配置高德安全密钥 jscode，回家路线与地址反查不可用" };
+    }
+    return { ok: true, reason: "" };
+}
 var seekDragging = false;
 var seekGeoToken = 0;
 var seekGeoTimer = null;
@@ -1137,16 +1177,92 @@ function getTrackRange() {
 function updateTrackRangeLabel() {
     var label = document.getElementById("trackRangeLabel");
     if (label) {
-        label.textContent = getTrackRange().label;
+        if (trackRangeMode === "date") {
+            var fromEl = document.getElementById("trackDateFrom");
+            var toEl = document.getElementById("trackDateTo");
+            var from = fromEl ? new Date(fromEl.value) : null;
+            var to = toEl ? new Date(toEl.value) : null;
+            label.textContent = "自定义";
+            if (from && to && !isNaN(from.getTime()) && !isNaN(to.getTime())) {
+                label.title = p(from.getMonth() + 1) + "/" + p(from.getDate()) + " " + p(from.getHours()) + ":" + p(from.getMinutes()) +
+                    " ~ " + p(to.getMonth() + 1) + "/" + p(to.getDate()) + " " + p(to.getHours()) + ":" + p(to.getMinutes());
+            } else {
+                label.title = "请选择开始/结束时间";
+            }
+        } else {
+            label.textContent = getTrackRange().label;
+            label.title = "";
+        }
     }
     updateRangeFill(document.getElementById("trackRange"));
 }
 
-function getTimeRange() {
-    var hours = getTrackRange().hours;
+/** Date -> datetime-local 输入框格式 */
+function toLocalInputValue(date) {
+    return date.getFullYear() + "-" + p(date.getMonth() + 1) + "-" + p(date.getDate()) +
+        "T" + p(date.getHours()) + ":" + p(date.getMinutes());
+}
+
+function ensureDateRangeDefaults() {
+    var fromEl = document.getElementById("trackDateFrom");
+    var toEl = document.getElementById("trackDateTo");
+    if (!fromEl || !toEl || (fromEl.value && toEl.value)) {
+        return;
+    }
     var to = new Date();
-    var from = new Date(to.getTime() - hours * 3600 * 1000);
-    return { from: from, to: to };
+    var from = new Date(to.getTime() - getTrackRange().hours * 3600 * 1000);
+    fromEl.value = toLocalInputValue(from);
+    toEl.value = toLocalInputValue(to);
+}
+
+/** 校验日期模式的时间范围 */
+function validateDateRange(notify) {
+    var fromEl = document.getElementById("trackDateFrom");
+    var toEl = document.getElementById("trackDateTo");
+    var hint = document.getElementById("dateRangeHint");
+    var from = fromEl ? new Date(fromEl.value) : null;
+    var to = toEl ? new Date(toEl.value) : null;
+    var valid = !!(from && to && !isNaN(from.getTime()) && !isNaN(to.getTime()) && from.getTime() < to.getTime());
+    if (hint) {
+        hint.textContent = valid ? "" : "请选择有效的开始/结束时间（开始需早于结束）";
+        hint.classList.toggle("is-error", !valid);
+    }
+    if (!valid && notify) {
+        ysToast("请选择有效的开始/结束时间", true);
+    }
+    return valid;
+}
+
+function getTimeRange() {
+    if (trackRangeMode === "date") {
+        var fromEl = document.getElementById("trackDateFrom");
+        var toEl = document.getElementById("trackDateTo");
+        var from = fromEl ? new Date(fromEl.value) : null;
+        var to = toEl ? new Date(toEl.value) : null;
+        if (from && to && !isNaN(from.getTime()) && !isNaN(to.getTime()) && from.getTime() < to.getTime()) {
+            return { from: from, to: to };
+        }
+    }
+    var hours = getTrackRange().hours;
+    var end = new Date();
+    var start = new Date(end.getTime() - hours * 3600 * 1000);
+    return { from: start, to: end };
+}
+
+/** 应用“滑动条/日期”模式到 UI */
+function applyRangeModeUi() {
+    var scope = document.getElementById("rangeScope");
+    if (!scope) {
+        return;
+    }
+    var isDate = trackRangeMode === "date";
+    if (isDate) {
+        ensureDateRangeDefaults();
+    }
+    scope.classList.toggle("is-date", isDate);
+    $("#rangeModeSwitch button").removeClass("is-active")
+        .filter('[data-mode="' + trackRangeMode + '"]').addClass("is-active");
+    updateTrackRangeLabel();
 }
 
 /** 更新 range 滑块的已选填充比例 */
@@ -1210,8 +1326,21 @@ function updateSeekUi(info) {
         addr.textContent = text;
         addr.title = text;
         addr.hidden = !text;
+        addr.classList.remove("is-disabled");
         if (!text && info.lon !== undefined && info.lon !== null) {
-            requestSeekGeocode(info.lon, info.lat, ++seekGeoToken);
+            var cap = getAmapCapability();
+            if (cap.ok) {
+                requestSeekGeocode(info.lon, info.lat, ++seekGeoToken);
+            } else {
+                var reason = (window.GaodeMapKey || "").trim()
+                    ? "未配置 jscode"
+                    : "未配置高德 Key";
+                text = reason;
+                addr.textContent = reason;
+                addr.title = cap.reason;
+                addr.hidden = false;
+                addr.classList.add("is-disabled");
+            }
         } else {
             seekGeoToken++;
             if (seekGeoTimer) {
@@ -1305,6 +1434,9 @@ function stopPlayback() {
 
 /** 一次加载并同时显示多个设备的轨迹 */
 function loadSelectedTracks() {
+    if (trackRangeMode === "date" && !validateDateRange(true)) {
+        return;
+    }
     var ids = selectedTrackIds();
     if (!ids.length) {
         /* 默认选中第一个可用设备，方便直接查看 */
@@ -1421,7 +1553,7 @@ function updateTrackHintText() {
             names.push(device.name);
         }
     }
-    var rangeLabel = getTrackRange().label;
+    var rangeLabel = trackRangeMode === "date" ? "自定义时间" : getTrackRange().label;
     var hint = "已加载 " + trackedDeviceIds.length + " 个设备的轨迹（" + rangeLabel + "）";
     if (names.length === 1) {
         hint = "已加载「" + names[0] + "」的轨迹（" + rangeLabel + "）";
@@ -1533,6 +1665,11 @@ function renderRouteList() {
 }
 
 function updateRouteHint() {
+    var capability = getAmapCapability();
+    if (!capability.ok) {
+        $("#routeHint").text(capability.reason);
+        return;
+    }
     if (!backhomeTrackEnabled) {
         $("#routeHint").text("");
         return;
@@ -1558,7 +1695,33 @@ function turnOffBackhomeRoutes() {
     SaveState();
 }
 
+/** 根据高德 Key/jscode 是否配置，更新回家路线按钮状态 */
+function updateAmapCapabilityUi() {
+    var capability = getAmapCapability();
+    var btn = document.getElementById("btnBackhome");
+    if (btn) {
+        if (capability.ok) {
+            $(btn).prop("disabled", false).removeClass("is-disabled").removeAttr("title");
+        } else {
+            $(btn).prop("disabled", true).addClass("is-disabled").attr("title", capability.reason);
+        }
+    }
+    var hint = document.getElementById("routeHint");
+    if (hint && !capability.ok && !backhomeTrackEnabled) {
+        hint.textContent = capability.reason;
+    }
+}
+
 function onBackhomeButtonClick() {
+    var capability = getAmapCapability();
+    if (!capability.ok) {
+        ysToast(capability.reason, true);
+        var routeHint = document.getElementById("routeHint");
+        if (routeHint) {
+            routeHint.textContent = capability.reason;
+        }
+        return;
+    }
     if (!backhomeTrackEnabled) {
         if (trackVisible) {
             hideTrack();
@@ -1954,7 +2117,10 @@ function SaveState() {
         tab: activeTab,
         trackSpeed: trackSpeedMultiplier,
         trackSelected: trackSelectedOrder.slice(),
-        trackRange: trackRangeIndex
+        trackRange: trackRangeIndex,
+        trackRangeMode: trackRangeMode,
+        trackDateFrom: (document.getElementById("trackDateFrom") || {}).value || "",
+        trackDateTo: (document.getElementById("trackDateTo") || {}).value || ""
     };
     try {
         storage.setItem(STORAGE_STATE, JSON.stringify(state));
@@ -1980,6 +2146,15 @@ function loadState() {
     trackSpeedMultiplier = state.trackSpeed || 1;
     if (typeof state.trackRange === "number" && state.trackRange >= 0 && state.trackRange < TRACK_RANGES.length) {
         trackRangeIndex = state.trackRange;
+    }
+    trackRangeMode = state.trackRangeMode === "date" ? "date" : "slider";
+    var fromEl = document.getElementById("trackDateFrom");
+    var toEl = document.getElementById("trackDateTo");
+    if (fromEl && state.trackDateFrom) {
+        fromEl.value = state.trackDateFrom;
+    }
+    if (toEl && state.trackDateTo) {
+        toEl.value = state.trackDateTo;
     }
     if ($.isArray(state.routeSelected)) {
         for (var i = 0; i < state.routeSelected.length; i++) {

@@ -51,7 +51,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _show_config_form(self, user_input):
         data_schema = OrderedDict()
-        data_schema[vol.Required("gaodekey", default="")] = str
+        data_schema[vol.Optional("gaodekey", default="")] = str
         data_schema[vol.Optional("jscode", default="")] = str
         data_schema[vol.Optional("longtoken", default="")] = str
 
@@ -96,7 +96,7 @@ class OptionsFlow(config_entries.OptionsFlow):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required("gaodekey", default=config.get("gaodekey")): cv.string,
+                    vol.Optional("gaodekey", default=config.get("gaodekey", "")): cv.string,
                     vol.Optional("jscode", default=config.get("jscode")): cv.string,
                     vol.Optional("longtoken", default=config.get("longtoken")): cv.string,
                     vol.Optional(

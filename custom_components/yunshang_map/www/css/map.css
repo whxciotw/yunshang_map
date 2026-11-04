@@ -2147,3 +2147,99 @@ html[data-theme="dark"] .ys-track-marker-badge {
 .ys-panel-card.is-compact-3 #seekField {
     margin-bottom: 4px;
 }
+
+/* 回放范围：滑动条 / 日期 切换 */
+.ys-mode-switch {
+    flex: 0 0 auto;
+    height: 24px;
+    padding: 2px;
+    border-radius: 8px;
+    margin-left: auto;
+    gap: 2px;
+}
+
+.ys-mode-switch button {
+    height: 20px;
+    padding: 0 8px;
+    font-size: 11px;
+    border-radius: 6px;
+    flex: 0 0 auto;
+}
+
+.ys-range-body {
+    overflow: hidden;
+    max-height: 60px;
+    opacity: 1;
+    transition: max-height .24s ease, opacity .18s ease, margin .24s ease;
+}
+
+#dateRangeBody {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+    margin: 0;
+}
+
+#rangeScope.is-date #sliderRangeBody {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#rangeScope.is-date #dateRangeBody {
+    max-height: 200px;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.ys-date-field {
+    margin-bottom: 8px;
+}
+
+.ys-date-field>label {
+    flex: 0 0 34px;
+    font-size: 12px;
+    color: var(--ys-text-dim);
+}
+
+#dateRangeHint {
+    margin-top: -2px;
+}
+
+html[data-theme="dark"] .ys-mode-switch button.is-active {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+}
+
+@media (max-width: 560px) {
+    .ys-mode-switch {
+        height: 26px;
+    }
+
+    .ys-mode-switch button {
+        height: 22px;
+        font-size: 11px;
+        padding: 0 9px;
+    }
+
+    .ys-date-field {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .ys-date-field>label {
+        flex: 0 0 32px;
+    }
+}
+
+/* 未配置 jscode / Key 时的禁用提示 */
+.ys-seek-addr.is-disabled {
+    font-style: italic;
+    opacity: .65;
+}
+
+.ys-btn.is-disabled,
+.ys-btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}

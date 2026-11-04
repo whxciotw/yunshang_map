@@ -7,7 +7,7 @@
  *   geo_location_sources: [gdacs, usgs_earthquakes_feed]   # 或 all
  *   hours_to_show: 24                                       # 0 表示不显示历史轨迹
  *   default_zoom: 14
- *   map_type: amap          # amap / amap-satellite / amap-traffic / baidu / baidu-satellite / baidu-traffic / osm
+ *   map_type: amap          # amap / amap-satellite / baidu / baidu-satellite / osm
  *   theme_mode: auto        # auto / light / dark
  *   aspect_ratio: 16:9       # 可选，控制卡片高度（留空则自适应布局）
  */
@@ -16,15 +16,13 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   const html = LitElement.prototype.html;
   const css = LitElement.prototype.css;
 
-  const CARD_VERSION = "1.10.0";
+  const CARD_VERSION = "1.11.0";
 
   const MAP_TYPES = [
     { value: "amap", label: "高德地图" },
     { value: "amap-satellite", label: "高德卫星" },
-    { value: "amap-traffic", label: "高德路况" },
     { value: "baidu", label: "百度地图" },
     { value: "baidu-satellite", label: "百度卫星" },
-    { value: "baidu-traffic", label: "百度路况" },
     { value: "osm", label: "OSM 地图" },
   ];
 
@@ -362,7 +360,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
     }
 
     _ensureTokens() {
-      if (this._tokens && this._tokens.hasstoken) {
+      if (this._tokens) {
         return;
       }
       if (this._loadingTokens) {
@@ -384,7 +382,8 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
           }
         })
         .catch(() => {
-          this._tokens = null;
+          /* 即使取不到（例如未配置令牌），也用空令牌渲染，内嵌时会复用 HA 会话 */
+          this._tokens = { hasstoken: "", gaodekey: "", jscode: "" };
         })
         .finally(() => {
           this._loadingTokens = false;
@@ -447,7 +446,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
     }
 
     render() {
-      if (!this._tokens || !this._tokens.hasstoken) {
+      if (!this._tokens) {
         this._ensureTokens();
         return html`<div class="root"><div class="loading">定制地图卡片加载中…</div></div>`;
       }
