@@ -388,7 +388,7 @@ function closePanel() {
         if (!panelVisible) {
             panel.hidden = true;
         }
-    }, 200);
+    }, 260);
     syncToolbarState(["devicelist"]);
 }
 
@@ -438,7 +438,7 @@ function layoutPanel() {
         card.style.height = "";
         card.style.left = "";
         card.style.top = "";
-        card.style.transform = "none";
+        card.style.transform = "";
     }
 }
 

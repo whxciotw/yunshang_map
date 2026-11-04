@@ -2085,3 +2085,24 @@ html[data-theme="dark"] .ys-track-marker-badge {
         max-height: 132px;
     }
 }
+
+/* 轨迹设备列表：手机/矮屏保持独立滚动，控件区不随之滚动 */
+@media (max-width: 560px) {
+    .ys-scroll-list.ys-track-list {
+        max-height: 196px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        overscroll-behavior: contain;
+    }
+}
+
+@media (max-height: 520px) {
+    .ys-scroll-list.ys-track-list {
+        max-height: 132px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-y;
+        overscroll-behavior: contain;
+    }
+}

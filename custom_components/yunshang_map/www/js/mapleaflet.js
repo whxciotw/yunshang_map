@@ -1087,13 +1087,13 @@ MapLeaflet.prototype = {
             var parsed = Date.parse(point.last_updated);
             ts = isNaN(parsed) ? null : parsed;
         }
-        var address = point.address || "";
-        if (!address && point.latitude !== undefined && point.longitude !== undefined) {
-            /* 没有地址属性时：先看是否在某个区域（家/公司/学校等）内，再退回经纬度 */
+        /* 位置显示优先级：区域名称（家/公司/学校等） > 具体地址；不显示经纬度 */
+        var address = "";
+        if (point.latitude !== undefined && point.longitude !== undefined) {
             address = this._zoneNameAt(point.longitude, point.latitude);
-            if (!address) {
-                address = Number(point.latitude).toFixed(5) + ", " + Number(point.longitude).toFixed(5);
-            }
+        }
+        if (!address) {
+            address = point.address || "";
         }
         return { progress: progress, ts: ts, address: address };
     },
