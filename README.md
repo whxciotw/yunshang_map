@@ -41,14 +41,14 @@ Home Assistant 自定义集成：在高德地图上显示设备追踪（`device_
 
 ### 方式一：手动安装（推荐）
 
-1. 下载本仓库（`main` 分支 zip 或 `git clone`）。
+1. 下载本仓库（`main` 分支 zip 或 `git clone http://192.168.19.3:3021/yunshang/yunshang_map.git`）。
 2. 将 `custom_components/yunshang_map` 整个目录复制到 Home Assistant 的 `config/custom_components/` 下。
 3. 重启 Home Assistant。
 4. 打开「设置 → 设备与服务 → 添加集成」，搜索「云尚（高德）地图」并完成配置。
 
 ### 方式二：HACS 自定义存储库
 
-HACS → 集成 → 右上角 → 自定义存储库，填入本仓库地址，类型选择「集成」，然后下载安装并重启。
+HACS → 集成 → 右上角 → 自定义存储库，填入仓库地址 `http://192.168.19.3:3021/yunshang/yunshang_map`，类型选择「集成」，然后下载安装并重启。
 
 ## 配置说明
 
