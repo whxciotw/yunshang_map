@@ -1,5 +1,5 @@
 /* ===========================================================
-   云尚（高德）地图 - 样式
+   定制地图 - 样式
    支持浅色 / 深色两种外观（由 js/theme.js 在 <html> 上切换 data-theme）
    =========================================================== */
 
@@ -14,7 +14,7 @@
     --ys-accent: #1677ff;
     --ys-accent-soft: #e8f1ff;
     --ys-hover: #eef4ff;
-    --ys-shadow: 0 10px 30px rgba(15, 23, 42, .16);
+    --ys-shadow: 0 14px 40px rgba(15, 23, 42, .18);
     --ys-label-bg: rgba(255, 255, 255, .96);
     --ys-label-fg: #1f2937;
 }
@@ -30,9 +30,21 @@ html[data-theme="dark"] {
     --ys-accent: #4da3ff;
     --ys-accent-soft: #16283d;
     --ys-hover: #222b38;
-    --ys-shadow: 0 10px 30px rgba(0, 0, 0, .55);
+    --ys-shadow: 0 14px 40px rgba(0, 0, 0, .6);
     --ys-label-bg: rgba(23, 28, 36, .94);
     --ys-label-fg: #e7ecf3;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+html {
+    color-scheme: light;
+}
+
+html[data-theme="dark"] {
+    color-scheme: dark;
 }
 
 html,
@@ -133,75 +145,227 @@ body {
     }
 }
 
-/* ---------- 设备面板（EasyUI Window） ---------- */
-.ys-device-panel.window {
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid var(--ys-border);
-    box-shadow: var(--ys-shadow);
-    background: var(--ys-panel);
-}
-
-.ys-device-panel .panel-header {
-    background: var(--ys-panel-head);
-    border: none;
-    border-bottom: 1px solid var(--ys-border);
-    border-radius: 0;
-    height: 38px;
-    padding: 0 10px;
-}
-
-.ys-device-panel .panel-title {
-    color: var(--ys-text);
-    font-size: 14px;
-    font-weight: 600;
-    height: 38px;
-    line-height: 38px;
-}
-
-.ys-device-panel .panel-tool {
-    height: 38px;
-}
-
-.ys-device-panel .panel-tool a {
-    margin-top: 12px;
-}
-
-.ys-device-panel .window-body {
-    overflow: hidden;
-    padding: 0;
-    border: none;
-    background: var(--ys-panel);
-}
-
+/* ---------- 面板 ---------- */
 .ys-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 1250;
+    pointer-events: none;
+}
+
+.ys-panel[hidden] {
+    display: none;
+}
+
+.ys-panel-card {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+    width: min(382px, calc(100vw - 24px));
+    max-height: min(668px, calc(100vh - 96px));
     display: flex;
     flex-direction: column;
-    height: 100%;
-    box-sizing: border-box;
-    padding: 10px;
-    gap: 8px;
+    overflow: hidden;
+    pointer-events: auto;
+    background: var(--ys-panel);
+    border: 1px solid var(--ys-border);
+    border-radius: 16px;
+    box-shadow: var(--ys-shadow);
+    transform: translateY(-10px) scale(.985);
+    opacity: 0;
+    transition: transform .18s ease, opacity .18s ease;
 }
 
-.ys-panel-toolbar {
+.ys-panel.is-open .ys-panel-card {
+    transform: none;
+    opacity: 1;
+}
+
+.ys-panel-card.is-dragging {
+    transition: none;
+}
+
+.ys-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex: 0 0 auto;
+    padding: 12px 14px 10px;
+    cursor: move;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.ys-panel-title {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ys-text);
+}
+
+.ys-count {
+    min-width: 22px;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--ys-accent-soft);
+    color: var(--ys-accent);
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ys-panel-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ys-icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--ys-text-dim);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
     flex: 0 0 auto;
+    transition: background .15s ease, color .15s ease;
+}
+
+.ys-icon-btn:hover {
+    background: var(--ys-hover);
+    color: var(--ys-accent);
+}
+
+.ys-icon-btn.is-on {
+    background: var(--ys-accent-soft);
+    color: var(--ys-accent);
+}
+
+.ys-icon-btn.is-muted {
+    opacity: .72;
+}
+
+.ys-icon-btn.is-spinning svg {
+    animation: ys-spin .8s linear infinite;
+}
+
+.ys-ic,
+.ys-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    display: block;
+}
+
+/* 页签 */
+.ys-tabs {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+    padding: 2px 14px 0;
+    border-bottom: 1px solid var(--ys-border);
+}
+
+.ys-tab {
+    flex: 1 1 0;
+    height: 36px;
+    border: none;
+    border-radius: 9px 9px 0 0;
+    background: transparent;
+    color: var(--ys-text-dim);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    position: relative;
+    transition: background .15s ease, color .15s ease;
+}
+
+.ys-tab:hover {
+    background: var(--ys-hover);
+    color: var(--ys-text);
+}
+
+.ys-tab.is-active {
+    background: var(--ys-accent-soft);
+    color: var(--ys-accent);
+    font-weight: 600;
+}
+
+.ys-tab.is-active::after {
+    content: "";
+    position: absolute;
+    left: 18%;
+    right: 18%;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--ys-accent);
+}
+
+/* 面板内容 */
+.ys-panel-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 10px 12px 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ys-pane {
+    display: none;
+}
+
+.ys-pane.is-active {
+    display: block;
+}
+
+/* ---------- 设备列表 ---------- */
+.ys-toolbar {
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.ys-search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    display: flex;
+    color: var(--ys-text-dim);
+    pointer-events: none;
+}
+
+.ys-search-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
 }
 
 .ys-search {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 32px;
-    padding: 0 12px;
-    font-size: 13px;
-    color: var(--ys-text);
-    background: var(--ys-bg-alt);
+    width: 100%;
+    height: 36px;
+    box-sizing: border-box;
+    padding: 0 12px 0 32px;
     border: 1px solid var(--ys-border);
     border-radius: 10px;
+    background: var(--ys-bg-alt);
+    color: var(--ys-text);
+    font-size: 13px;
     outline: none;
-    box-sizing: border-box;
     -webkit-appearance: none;
     appearance: none;
 }
@@ -210,162 +374,145 @@ body {
     color: var(--ys-text-dim);
 }
 
-.ys-search:focus {
+.ys-search:focus,
+.ys-input:focus,
+.ys-select:focus {
     border-color: var(--ys-accent);
-    background: var(--ys-panel);
+    background-color: var(--ys-panel);
     box-shadow: 0 0 0 3px var(--ys-accent-soft);
 }
 
-.ys-mini-btn {
-    flex: 0 0 auto;
-    height: 32px;
-    padding: 0 12px;
-    font-size: 13px;
-    color: var(--ys-text);
-    background: var(--ys-panel);
-    border: 1px solid var(--ys-border);
-    border-radius: 10px;
+.ys-device-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-bottom: 6px;
+}
+
+.ys-device-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 12px;
+    border: 1px solid transparent;
     cursor: pointer;
-    transition: all .15s ease;
+    transition: background .12s ease;
 }
 
-.ys-mini-btn:hover {
-    color: var(--ys-accent);
-    border-color: var(--ys-accent);
+.ys-device-row:hover {
+    background: var(--ys-hover);
+}
+
+.ys-device-row.is-active {
     background: var(--ys-accent-soft);
+    border-color: var(--ys-accent);
 }
 
-.ys-grid-wrap {
-    position: relative;
-    flex: 1 1 auto;
-    min-height: 110px;
-    border: 1px solid var(--ys-border);
-    border-radius: 11px;
+.ys-avatar {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     overflow: hidden;
-    background: var(--ys-panel);
-}
-
-.ys-empty[hidden] {
-    display: none !important;
-}
-
-.ys-empty {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 32px;
-    bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--ys-text-dim);
-    font-size: 13px;
-    background: var(--ys-panel);
-}
-
-.ys-section {
-    flex: 0 0 auto;
-}
-
-.ys-section-title {
-    margin: 2px 0 6px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: .5px;
-    color: var(--ys-text-dim);
-}
-
-.ys-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.ys-row:last-child {
-    margin-bottom: 0;
-}
-
-.ys-time-row label {
-    flex: 0 0 auto;
-    width: 30px;
-    font-size: 13px;
-    color: var(--ys-text-dim);
-}
-
-.ys-presets {
-    gap: 6px;
-    margin-bottom: 8px;
-}
-
-.ys-chip {
-    border: 1px solid var(--ys-border);
     background: var(--ys-bg-alt);
-    color: var(--ys-text-dim);
-    font-size: 12px;
-    padding: 3px 11px;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: all .15s ease;
+    border: 2px solid var(--ys-border);
+    box-sizing: border-box;
 }
 
-.ys-chip:hover,
-.ys-chip.active {
-    color: var(--ys-accent);
-    border-color: var(--ys-accent);
-    background: var(--ys-accent-soft);
-}
-
-.ys-draw-btns {
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 0;
-}
-
-/* ---------- 设备列表单元格 ---------- */
-.ys-grid-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
+.ys-avatar img {
+    width: 100%;
     height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
-.ys-grid-icon {
-    flex: 0 0 22px;
+.ys-avatar svg {
     width: 22px;
     height: 22px;
-    padding: 3px;
-    box-sizing: border-box;
-    border-radius: 50%;
-    background: var(--ys-accent-soft);
-    object-fit: contain;
+    fill: var(--ys-accent);
+    display: block;
 }
 
-.ys-grid-icon-empty {
-    background: var(--ys-bg-alt);
+.ys-avatar-home {
+    border-color: rgba(22, 163, 74, .55);
 }
 
-.ys-grid-name-text {
-    font-size: 13px;
-    color: var(--ys-text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.ys-avatar-home svg {
+    fill: #16a34a;
 }
 
-.ys-grid-state {
-    line-height: 1.4;
-    padding: 2px 0;
+.ys-avatar-away {
+    border-color: rgba(37, 99, 235, .5);
+}
+
+.ys-avatar-away svg {
+    fill: #2563eb;
+}
+
+.ys-avatar-zone {
+    border-color: rgba(124, 58, 237, .5);
+}
+
+.ys-avatar-zone svg {
+    fill: #7c3aed;
+}
+
+.ys-avatar-unknown {
+    border-color: var(--ys-border);
+}
+
+.ys-device-main {
+    flex: 1 1 auto;
     min-width: 0;
 }
 
+.ys-device-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ys-text);
+    line-height: 20px;
+}
+
+.ys-device-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.ys-device-sub {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--ys-text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ys-device-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+}
+
+/* 状态徽章 */
 .ys-state {
     display: inline-block;
     padding: 1px 8px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 18px;
     white-space: nowrap;
+    flex: 0 0 auto;
 }
 
 .ys-state-home {
@@ -388,22 +535,6 @@ body {
     background: var(--ys-bg-alt);
 }
 
-.ys-state-address {
-    margin-top: 2px;
-    font-size: 11px;
-    color: var(--ys-text-dim);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.ys-state-time {
-    margin-top: 2px;
-    font-size: 11px;
-    color: var(--ys-accent);
-    white-space: nowrap;
-}
-
 html[data-theme="dark"] .ys-state-home {
     color: #4ade80;
     background: rgba(34, 197, 94, .18);
@@ -419,667 +550,287 @@ html[data-theme="dark"] .ys-state-zone {
     background: rgba(139, 92, 246, .2);
 }
 
-/* ---------- EasyUI 通用（浅色） ---------- */
-.panel {
-    background: var(--ys-panel);
-    border-color: var(--ys-border);
-}
-
-.panel-body {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-}
-
-.window {
-    background: var(--ys-panel);
-}
-
-.window .window-header {
-    background: var(--ys-panel-head);
-    border-color: var(--ys-border);
-}
-
-.window .window-header .panel-title,
-.window .window-header .panel-tool {
-    color: var(--ys-text);
-}
-
-.datagrid,
-.datagrid-wrap,
-.datagrid-view,
-.datagrid-view1,
-.datagrid-view2 {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-}
-
-.datagrid-header {
-    background: var(--ys-panel-head);
-}
-
-.datagrid-htable,
-.datagrid-header-row td {
-    background: var(--ys-panel-head);
+.ys-empty {
+    padding: 34px 10px;
+    text-align: center;
     color: var(--ys-text-dim);
-    border-color: var(--ys-border);
+    font-size: 13px;
 }
 
-.datagrid-header .datagrid-cell {
-    color: var(--ys-text-dim);
+.ys-empty[hidden] {
+    display: none;
+}
+
+/* ---------- 表单 ---------- */
+.ys-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.ys-field>label {
     font-size: 12px;
     font-weight: 600;
+    letter-spacing: .3px;
+    color: var(--ys-text-dim);
 }
 
-.datagrid-body {
-    background: var(--ys-panel);
+.ys-field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
-.datagrid-btable .datagrid-cell {
-    color: var(--ys-text);
+.ys-field-row>label {
+    flex: 0 0 34px;
     font-size: 13px;
+    color: var(--ys-text-dim);
 }
 
-.datagrid-row td {
-    border-bottom: 1px solid var(--ys-border);
-}
-
-.datagrid-row-alt {
-    background: var(--ys-bg-alt);
-}
-
-.datagrid-row-over {
-    background: var(--ys-hover) !important;
-    color: var(--ys-text);
-    cursor: pointer;
-}
-
-.datagrid-row-selected {
-    background: var(--ys-accent-soft) !important;
-    color: var(--ys-text) !important;
-}
-
-.datagrid-row-checked {
-    background: var(--ys-panel);
-}
-
-.datagrid-row-selected.datagrid-row-checked {
-    background: var(--ys-accent-soft) !important;
-}
-
-.datagrid-cell-check input[type="checkbox"] {
-    accent-color: var(--ys-accent);
-    cursor: pointer;
-    width: 14px;
-    height: 14px;
-}
-
-.datagrid-view1 .datagrid-body {
-    background: var(--ys-panel);
-}
-
-.datagrid-header-inner,
-.datagrid-body-inner {
-    background: transparent;
-}
-
-.datagrid-ftable td {
-    border-color: var(--ys-border);
-}
-
-.datagrid-sort-icon,
-.datagrid-sort-asc .datagrid-sort-icon,
-.datagrid-sort-desc .datagrid-sort-icon {
-    filter: none;
-}
-
-/* 按钮 */
-.l-btn {
-    height: 30px;
-    line-height: 28px;
-    padding: 0 12px;
-    border: 1px solid var(--ys-border);
-    border-radius: 9px;
-    background: var(--ys-panel);
-    color: var(--ys-text);
-    font-size: 13px;
-    vertical-align: middle;
+.ys-input,
+.ys-select {
+    width: 100%;
+    height: 38px;
     box-sizing: border-box;
+    padding: 0 10px;
+    font-size: 14px;
+    color: var(--ys-text);
+    background: var(--ys-bg-alt);
+    border: 1px solid var(--ys-border);
+    border-radius: 10px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    font-family: inherit;
+}
+
+.ys-field-row .ys-input,
+.ys-field-row .ys-select {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ys-select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%238b95a5%22%20d%3D%22M7.41%2C8.59L12%2C13.17L16.59%2C8.59L18%2C10L12%2C16L6%2C10L7.41%2C8.59Z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 16px;
+    padding-right: 32px;
+    cursor: pointer;
+}
+
+.ys-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.ys-chip {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--ys-border);
+    background: var(--ys-bg-alt);
+    color: var(--ys-text-dim);
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
     transition: all .15s ease;
 }
 
-.l-btn .l-btn-left {
-    height: 100%;
+.ys-chip:hover {
+    color: var(--ys-accent);
+    border-color: var(--ys-accent);
 }
 
-.l-btn .l-btn-text {
-    height: 100%;
-    line-height: 100%;
-    color: inherit;
-    font-size: 13px;
-    padding: 0;
-}
-
-.l-btn .l-btn-icon {
-    height: 16px;
-    line-height: 16px;
-    margin-top: 7px;
-}
-
-.l-btn:hover {
+.ys-chip.is-active {
     color: var(--ys-accent);
     border-color: var(--ys-accent);
     background: var(--ys-accent-soft);
+    font-weight: 600;
 }
 
-.l-btn-disabled,
-.l-btn-disabled:hover {
-    opacity: .55;
-    cursor: not-allowed;
-    color: var(--ys-text-dim);
-    border-color: var(--ys-border);
+.ys-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+    margin-bottom: 10px;
+}
+
+.ys-btn {
+    flex: 1 1 auto;
+    height: 38px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid var(--ys-border);
     background: var(--ys-bg-alt);
+    color: var(--ys-text);
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all .15s ease;
 }
 
-.l-btn.ys-btn-mini {
-    height: 27px;
-    line-height: 25px;
-    padding: 0 8px;
-    border-radius: 8px;
+.ys-btn:hover {
+    border-color: var(--ys-accent);
+    color: var(--ys-accent);
 }
 
-.l-btn.ys-btn-mini .l-btn-text {
-    font-size: 12px;
-}
-
-.l-btn.ys-btn-primary {
+.ys-btn-primary {
     background: var(--ys-accent);
     border-color: var(--ys-accent);
     color: #ffffff;
     font-weight: 600;
 }
 
-.l-btn.ys-btn-primary .l-btn-text {
+.ys-btn-primary:hover {
     color: #ffffff;
-}
-
-.l-btn.ys-btn-primary:hover {
     filter: brightness(1.06);
-    background: var(--ys-accent);
-    color: #ffffff;
 }
 
-/* 输入框 / 组合框 / 日期时间 */
-.textbox,
-.textbox .textbox-text {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-    border-color: var(--ys-border);
-}
-
-.textbox {
-    border-radius: 9px;
-}
-
-.textbox .textbox-text {
-    border-radius: 9px;
+.ys-btn-sm {
+    height: 32px;
+    padding: 0 10px;
     font-size: 13px;
-    height: 24px;
+    flex: 1 1 42%;
 }
 
-.textbox-focused,
-.textbox.textbox-focused {
-    border-color: var(--ys-accent);
-    box-shadow: 0 0 0 3px var(--ys-accent-soft);
-}
-
-.textbox .textbox-prompt {
+.ys-hint {
+    min-height: 18px;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.5;
     color: var(--ys-text-dim);
 }
 
-.textbox-addon .textbox-icon {
-    opacity: .8;
+.ys-hint.is-error {
+    color: #dc2626;
 }
 
-.combo-panel {
-    background: var(--ys-panel);
-    border: 1px solid var(--ys-border);
+/* 回家路线多选 */
+.ys-check-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 236px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.ys-check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
     border-radius: 10px;
-    box-shadow: var(--ys-shadow);
-    overflow: hidden;
+    cursor: pointer;
 }
 
-.combobox-item {
-    padding: 6px 12px;
-    font-size: 13px;
-    color: var(--ys-text);
-}
-
-.combobox-item-hover {
+.ys-check-row:hover {
     background: var(--ys-hover);
-    color: var(--ys-text);
 }
 
-.combobox-item-selected {
-    background: var(--ys-accent-soft);
-    color: var(--ys-accent);
-}
-
-/* 日期选择面板 */
-.calendar {
-    background: var(--ys-panel);
-    border: 1px solid var(--ys-border);
-    border-radius: 10px;
-    color: var(--ys-text);
-    padding: 6px;
-}
-
-.calendar-title {
-    color: var(--ys-text);
-    font-size: 13px;
-    height: 26px;
-    line-height: 26px;
-}
-
-.calendar-title a {
-    color: var(--ys-accent);
-    font-size: 12px;
-}
-
-.calendar-header,
-.calendar-body {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-}
-
-.calendar-header td,
-.calendar-header .calendar-header-title {
-    color: var(--ys-text-dim);
-    background: transparent;
-    font-size: 12px;
-    padding: 4px 0;
-}
-
-.calendar-body td {
-    color: var(--ys-text);
-    border-radius: 6px;
-}
-
-.calendar-body td.calendar-selected,
-.calendar-body td.calendar-selected a {
-    background: var(--ys-accent);
-    color: #ffffff;
-}
-
-.calendar-menu {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-    border: 1px solid var(--ys-border);
-    border-radius: 10px;
-}
-
-.calendar-menu-year-inner,
-.calendar-menu-prev,
-.calendar-menu-next {
-    color: var(--ys-text);
-}
-
-.calendar-menu-year {
-    color: var(--ys-text);
-    border-color: var(--ys-border);
-}
-
-.calendar-menu-month-inner td {
-    color: var(--ys-text);
-}
-
-.calendar-menu-month-inner td:hover,
-.calendar-menu-year-inner .calendar-menu-year:hover {
-    background: var(--ys-accent-soft);
-}
-
-.datebox .combo-arrow {
-    opacity: .8;
-}
-
-/* 滚动条 */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(128, 138, 156, .45);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(128, 138, 156, .7);
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-/* ---------- 深色主题：EasyUI 细节 ---------- */
-html[data-theme="dark"] body,
-html[data-theme="dark"] html {
-    background-color: var(--ys-bg);
-    color: var(--ys-text);
-}
-
-html[data-theme="dark"] .panel,
-html[data-theme="dark"] .panel-body,
-html[data-theme="dark"] .window,
-html[data-theme="dark"] .window-body {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-    border-color: var(--ys-border);
-}
-
-html[data-theme="dark"] .panel-header,
-html[data-theme="dark"] .window .window-header {
-    background: var(--ys-panel-head);
-    border-color: var(--ys-border);
-}
-
-html[data-theme="dark"] .panel-title,
-html[data-theme="dark"] .window .window-header .panel-title {
-    color: var(--ys-text);
-}
-
-html[data-theme="dark"] .panel-tool a,
-html[data-theme="dark"] .panel-tool-close,
-html[data-theme="dark"] .panel-tool-min,
-html[data-theme="dark"] .panel-tool-max,
-html[data-theme="dark"] .panel-tool-restore,
-html[data-theme="dark"] .combo-arrow,
-html[data-theme="dark"] .datebox .combo-arrow,
-html[data-theme="dark"] .textbox-icon,
-html[data-theme="dark"] .datagrid-sort-icon,
-html[data-theme="dark"] .tree-checkbox,
-html[data-theme="dark"] .l-btn-icon {
-    filter: invert(0.86) hue-rotate(180deg);
-}
-
-html[data-theme="dark"] .datagrid,
-html[data-theme="dark"] .datagrid-wrap,
-html[data-theme="dark"] .datagrid-view,
-html[data-theme="dark"] .datagrid-view1,
-html[data-theme="dark"] .datagrid-view2,
-html[data-theme="dark"] .datagrid-body,
-html[data-theme="dark"] .datagrid-body-inner {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-}
-
-html[data-theme="dark"] .datagrid-header,
-html[data-theme="dark"] .datagrid-htable,
-html[data-theme="dark"] .datagrid-header-row td {
-    background: var(--ys-panel-head);
-    color: var(--ys-text-dim);
-    border-color: var(--ys-border);
-}
-
-html[data-theme="dark"] .datagrid-row td {
-    border-bottom-color: var(--ys-border);
-}
-
-html[data-theme="dark"] .datagrid-row-alt {
-    background: #1b212b;
-}
-
-html[data-theme="dark"] .datagrid-row-over {
-    background: var(--ys-hover) !important;
-}
-
-html[data-theme="dark"] .datagrid-row-selected {
-    background: var(--ys-accent-soft) !important;
-    color: var(--ys-text) !important;
-}
-
-html[data-theme="dark"] .l-btn {
-    background: var(--ys-bg-alt);
-    border-color: var(--ys-border);
-    color: var(--ys-text);
-}
-
-html[data-theme="dark"] .l-btn .l-btn-text {
-    color: inherit;
-}
-
-html[data-theme="dark"] .l-btn:hover {
-    background: var(--ys-accent-soft);
-    border-color: var(--ys-accent);
-    color: var(--ys-accent);
-}
-
-html[data-theme="dark"] .l-btn.ys-btn-primary,
-html[data-theme="dark"] .l-btn.ys-btn-primary .l-btn-text {
-    background: var(--ys-accent);
-    border-color: var(--ys-accent);
-    color: #0b1220;
-}
-
-html[data-theme="dark"] .textbox,
-html[data-theme="dark"] .textbox .textbox-text {
-    background: var(--ys-bg-alt);
-    color: var(--ys-text);
-    border-color: var(--ys-border);
-}
-
-html[data-theme="dark"] .combo-panel,
-html[data-theme="dark"] .calendar,
-html[data-theme="dark"] .calendar-menu {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-    border-color: var(--ys-border);
-}
-
-html[data-theme="dark"] .calendar-body,
-html[data-theme="dark"] .calendar-header {
-    background: var(--ys-panel);
-    color: var(--ys-text);
-}
-
-html[data-theme="dark"] .calendar-menu-year {
-    color: var(--ys-text);
-    border-color: var(--ys-border);
-}
-
-html[data-theme="dark"] .calendar-menu-month-inner td {
-    color: var(--ys-text);
-}
-
-html[data-theme="dark"] .combobox-item {
-    color: var(--ys-text);
-}
-
-
-/* 设备列表：行高与单元格（EasyUI 默认行高偏小，这里统一加大） */
-.ys-grid-wrap .datagrid-header {
-    height: 32px;
-}
-
-.ys-grid-wrap .datagrid-header .datagrid-cell {
-    height: 32px;
-    line-height: 32px;
-}
-
-.ys-grid-wrap .datagrid-btable tr.datagrid-row {
-    height: 54px !important;
-}
-
-.ys-grid-wrap .datagrid-btable tr.datagrid-row td {
-    vertical-align: middle;
-}
-
-.ys-grid-wrap .datagrid-btable .datagrid-cell {
-    display: flex;
-    align-items: center;
-    height: 54px;
-    line-height: normal;
-    white-space: normal;
-}
-
-.ys-grid-wrap .datagrid-btable .datagrid-cell-check {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 54px;
-}
-
-.ys-grid-wrap .datagrid-btable td[field="ck"] .datagrid-cell {
-    padding-top: 0;
-}
-
-.ys-grid-wrap .datagrid-btable .datagrid-cell .ys-grid-state {
-    width: 100%;
-}
-
-
-/* EasyUI 输入框图标：统一换成主题色矢量图标（日历 / 下拉箭头） */
-.textbox .textbox-addon .combo-arrow,
-.textbox .textbox-addon .textbox-icon {
-    background: none !important;
-    position: relative;
-    opacity: 1;
-    filter: none !important;
-}
-
-.textbox .textbox-addon .combo-arrow::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
+.ys-check-row input[type="checkbox"] {
+    flex: 0 0 auto;
     width: 16px;
     height: 16px;
-    transform: translate(-50%, -50%);
-    background-color: var(--ys-text-dim);
-    -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M7.41%2C8.59L12%2C13.17L16.59%2C8.59L18%2C10L12%2C16L6%2C10L7.41%2C8.59Z%22%2F%3E%3C%2Fsvg%3E") center/16px 16px no-repeat;
-    mask: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M7.41%2C8.59L12%2C13.17L16.59%2C8.59L18%2C10L12%2C16L6%2C10L7.41%2C8.59Z%22%2F%3E%3C%2Fsvg%3E") center/16px 16px no-repeat;
-}
-
-.datebox .textbox-addon .combo-arrow::before {
-    -webkit-mask: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M19%2C3H18V1H16V3H8V1H6V3H5A2%2C2%200%200%200%203%2C5V19A2%2C2%200%200%200%205%2C21H19A2%2C2%200%200%200%2021%2C19V5A2%2C2%200%200%200%2019%2C3M19%2C19H5V8H19V19Z%22%2F%3E%3C%2Fsvg%3E") center/15px 15px no-repeat;
-    mask: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M19%2C3H18V1H16V3H8V1H6V3H5A2%2C2%200%200%200%203%2C5V19A2%2C2%200%200%200%205%2C21H19A2%2C2%200%200%200%2021%2C19V5A2%2C2%200%200%200%2019%2C3M19%2C19H5V8H19V19Z%22%2F%3E%3C%2Fsvg%3E") center/15px 15px no-repeat;
-}
-
-.textbox .textbox-addon .combo-arrow:hover::before {
-    background-color: var(--ys-accent);
-}
-
-/* 日期面板关闭按钮等小图标 */
-.calendar-title a {
-    text-decoration: none;
-}
-
-/* ---------- 地图标记（设备图标优先） ---------- */
-.ys-marker {
-    position: relative;
-    width: 40px;
-    height: 40px;
+    accent-color: var(--ys-accent);
     cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
-.ys-marker-badge {
-    width: 36px;
-    height: 36px;
-    margin: 2px;
+.ys-check-avatar {
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: #ffffff;
-    border: 2px solid var(--ys-accent);
-    box-sizing: border-box;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
-    box-shadow: 0 3px 10px rgba(15, 23, 42, .35);
-    transition: transform .15s ease, box-shadow .15s ease;
+    background: var(--ys-bg-alt);
 }
 
-.ys-marker-badge .ys-marker-svg {
-    width: 20px;
-    height: 20px;
-    fill: var(--ys-accent);
-    display: block;
-}
-
-.ys-marker-badge .ys-marker-picture {
+.ys-check-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
 }
 
-.ys-marker:hover .ys-marker-badge {
-    transform: scale(1.1);
-    box-shadow: 0 5px 14px rgba(15, 23, 42, .45);
+.ys-check-avatar svg {
+    width: 16px;
+    height: 16px;
+    fill: var(--ys-accent);
 }
 
-.ys-marker-label {
-    position: absolute;
-    top: 42px;
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 132px;
-    padding: 1px 8px;
-    border-radius: 10px;
-    background: var(--ys-label-bg);
-    color: var(--ys-label-fg);
-    font-size: 12px;
-    line-height: 18px;
-    white-space: nowrap;
+.ys-check-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--ys-text);
     overflow: hidden;
     text-overflow: ellipsis;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, .25);
-    pointer-events: none;
+    white-space: nowrap;
 }
 
-/* 状态配色 */
-.ys-marker-home .ys-marker-badge {
-    border-color: #16a34a;
+/* 出行方式 */
+.ys-segmented {
+    display: flex;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 11px;
+    background: var(--ys-bg-alt);
+    border: 1px solid var(--ys-border);
 }
 
-.ys-marker-home .ys-marker-badge .ys-marker-svg {
-    fill: #16a34a;
+.ys-segmented button {
+    flex: 1 1 0;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ys-text-dim);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
 }
 
-.ys-marker-home .ys-marker-label {
-    color: #15803d;
+.ys-segmented button.is-active {
+    background: var(--ys-panel);
+    color: var(--ys-accent);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .18);
 }
 
-.ys-marker-away .ys-marker-badge {
-    border-color: #2563eb;
+/* 面板脚注 */
+.ys-panel-footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 14px;
+    border-top: 1px solid var(--ys-border);
+    font-size: 12px;
+    color: var(--ys-text-dim);
 }
 
-.ys-marker-away .ys-marker-badge .ys-marker-svg {
-    fill: #2563eb;
+.ys-link {
+    color: var(--ys-accent);
+    text-decoration: none;
 }
 
-.ys-marker-zone .ys-marker-badge {
-    border-color: #7c3aed;
+.ys-link:hover {
+    text-decoration: underline;
 }
 
-.ys-marker-zone .ys-marker-badge .ys-marker-svg {
-    fill: #7c3aed;
-}
-
-.ys-marker-unknown .ys-marker-badge {
-    border-color: #8b95a5;
-}
-
-.ys-marker-unknown .ys-marker-badge .ys-marker-svg {
-    fill: #8b95a5;
-}
-
-html[data-theme="dark"] .ys-marker-badge {
-    background: #1f2631;
-}
-
-html[data-theme="dark"] .ys-marker-label {
-    color: var(--ys-label-fg);
+.ys-footer-tip {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ---------- 主题选择面板 ---------- */
@@ -1092,6 +843,7 @@ html[data-theme="dark"] .ys-marker-label {
     flex-direction: column;
     gap: 4px;
     min-width: 158px;
+    max-width: calc(100vw - 24px);
     padding: 10px;
     border-radius: 14px;
     border: 1px solid var(--ys-border);
@@ -1126,6 +878,7 @@ html[data-theme="dark"] .ys-marker-label {
     background: transparent;
     color: var(--ys-text);
     font-size: 14px;
+    font-family: inherit;
     text-align: left;
     cursor: pointer;
     transition: background .15s ease, color .15s ease;
@@ -1189,6 +942,112 @@ html[data-theme="dark"] .ys-marker-label {
     background: #b91c1c;
 }
 
+/* ---------- 地图标记（设备图标优先，保持轻量避免缩放卡顿） ---------- */
+.ys-marker {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.ys-marker-badge {
+    width: 36px;
+    height: 36px;
+    margin: 2px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid var(--ys-accent);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .3);
+}
+
+.ys-marker-badge .ys-marker-svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--ys-accent);
+    display: block;
+}
+
+.ys-marker-badge .ys-marker-picture {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.ys-marker:hover .ys-marker-badge {
+    box-shadow: 0 3px 9px rgba(15, 23, 42, .42);
+}
+
+.ys-marker-label {
+    position: absolute;
+    top: 42px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 132px;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: var(--ys-label-bg);
+    color: var(--ys-label-fg);
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .25);
+    pointer-events: none;
+}
+
+.ys-marker-home .ys-marker-badge {
+    border-color: #16a34a;
+}
+
+.ys-marker-home .ys-marker-badge .ys-marker-svg {
+    fill: #16a34a;
+}
+
+.ys-marker-home .ys-marker-label {
+    color: #15803d;
+}
+
+.ys-marker-away .ys-marker-badge {
+    border-color: #2563eb;
+}
+
+.ys-marker-away .ys-marker-badge .ys-marker-svg {
+    fill: #2563eb;
+}
+
+.ys-marker-zone .ys-marker-badge {
+    border-color: #7c3aed;
+}
+
+.ys-marker-zone .ys-marker-badge .ys-marker-svg {
+    fill: #7c3aed;
+}
+
+.ys-marker-unknown .ys-marker-badge {
+    border-color: #8b95a5;
+}
+
+.ys-marker-unknown .ys-marker-badge .ys-marker-svg {
+    fill: #8b95a5;
+}
+
+html[data-theme="dark"] .ys-marker-badge {
+    background: #1f2631;
+}
+
+html[data-theme="dark"] .ys-marker-label {
+    color: var(--ys-label-fg);
+}
+
 /* ---------- 高德控件适配 ---------- */
 .amap-scalecontrol,
 .amap-maptypecontrol {
@@ -1221,20 +1080,124 @@ html[data-theme="dark"] .amap-info-sharp {
     border-top-color: var(--ys-panel) !important;
 }
 
-/* ---------- 窄屏适配 ---------- */
-@media (max-width: 420px) {
+/* 在家设备信息窗（聚合点点击） */
+.ys-home-window {
+    padding: 4px 8px;
+    color: var(--ys-text);
+}
+
+.ys-home-window-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ys-text-dim);
+    margin-bottom: 6px;
+}
+
+.ys-home-window-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ys-home-window-list li {
+    padding: 4px 2px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ys-text);
+}
+
+.ys-home-window-list li:hover {
+    color: var(--ys-accent);
+}
+
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(128, 138, 156, .45);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 138, 156, .7);
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ---------- 响应式：移动端底部抽屉 ---------- */
+@media (max-width: 560px) {
+    .ys-panel-card {
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+        width: 100%;
+        max-height: 84vh;
+        border-radius: 18px 18px 0 0;
+        border-bottom: none;
+        transform: translateY(100%);
+        opacity: 1;
+        transition: transform .22s ease;
+    }
+
+    .ys-panel.is-open .ys-panel-card {
+        transform: translateY(0);
+    }
+
+    .ys-panel-header {
+        cursor: default;
+        padding-top: 10px;
+        position: relative;
+    }
+
+    .ys-panel-header::before {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 38px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--ys-border);
+    }
+
+    .ys-panel-body {
+        padding-bottom: 8px;
+    }
+
     #dock img {
         width: 38px;
         height: 38px;
     }
 
-    .ys-device-panel .panel-title {
-        font-size: 13px;
+    .ys-theme-panel {
+        bottom: 62px;
     }
 }
 
 @media (max-height: 560px) {
+    .ys-panel-card {
+        max-height: 92vh;
+    }
+
     .ys-theme-panel {
         bottom: 60px;
+    }
+}
+
+/* 减少动态效果偏好：关闭过渡动画 */
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
     }
 }

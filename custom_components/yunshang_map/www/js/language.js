@@ -6,7 +6,7 @@ var lang = "zh";
 
 var I18N = {
     zh: {
-        appName: "云尚（高德）地图",
+        appName: "定制地图",
         loading: "加载中…",
         mapLoading: "地图加载中…",
         mapLoadFailed: "地图加载失败",
@@ -57,7 +57,7 @@ var I18N = {
         homeDevices: "在家设备",
     },
     en: {
-        appName: "Yunshang Gaode Map",
+        appName: "Custom Map",
         loading: "Loading…",
         mapLoading: "Loading map…",
         mapLoadFailed: "Failed to load map",

@@ -44,19 +44,9 @@ MapGaode.prototype = {
                 /* 高德 Key 不正确时忽略 */
             }
 
-            that.map.on('zoomchange', function () {
-                $(document).trigger('zoomchange');
-            });
-
+            /* 只在缩放结束时通知外部刷新工具栏，避免缩放过程中逐帧刷新图标造成卡顿 */
             that.map.on('zoomend', function () {
-                if (that.trackPlaybackLine1) {
-                    var path = that.trackPlaybackLine1.getPath();
-                    that.trackPlaybackLine1.setPath(path);
-                }
-                if (that.trackPlaybackLine2) {
-                    var path = that.trackPlaybackLine2.getPath();
-                    that.trackPlaybackLine2.setPath(path);
-                }
+                $(document).trigger('mapzoomend');
             });
 
             that.map.addControl(new AMap.Scale());
@@ -158,6 +148,21 @@ MapGaode.prototype = {
         if (!coordinate || coordinate.length === 0) {
             return;
         }
+        /* 轨迹点过多会造成缩放/平移卡顿：按最多 800 个点抽样显示（保留首尾点） */
+        var original = coordinate.length;
+        var maxPoints = 800;
+        if (original > maxPoints) {
+            var step = Math.ceil(original / maxPoints);
+            var sampled = [];
+            for (var i = 0; i < original; i += step) {
+                sampled.push(coordinate[i]);
+            }
+            if (sampled[sampled.length - 1] !== coordinate[original - 1]) {
+                sampled.push(coordinate[original - 1]);
+            }
+            coordinate = sampled;
+        }
+        this.lastTrackInfo = { original: original, drawn: coordinate.length };
         this.drawTrackPlaybackmarker(coordinate);
     },
 
@@ -170,10 +175,13 @@ MapGaode.prototype = {
         var cCoordinate = new Array();
         $.each(coordinate, function (i, n) {
             var cPosition = that.getCustomCoordinate({ 'lon': n.longitude, 'lat': n.latitude });
+            var updatedate = (n.lastseen ? "最后出现：" + n.lastseen + "<br/>" : "") +
+                (n.latest_report_time ? "上报时间：" + n.latest_report_time + "<br/>记录时间：" : "") +
+                (n.last_updated ? "" + getDatetime(n.last_updated) : "");
             cCoordinate.push({
                 'longitude': cPosition.lon,
                 'latitude': cPosition.lat,
-                'updatedate': n.updatedate,
+                'updatedate': updatedate,
                 'lnglat': [cPosition.lon, cPosition.lat]
             });
         });

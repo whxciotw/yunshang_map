@@ -2,7 +2,7 @@
  * 云尚（高德）地图 - 卡片（iframe）页面逻辑
  * 在 Lovelace 中嵌入单个（或一组）设备的地图位置。
  */
-var map = new Map();
+var map = new MapController();
 var homePoint = null;
 var getDataMode = "client";
 var storage = null;

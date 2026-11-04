@@ -10,29 +10,25 @@
     <meta http-equiv="Cache-control" content="no-cache, must-revalidate">
     <meta http-equiv="Cache" content="no-cache">
     <meta id="themeColorMeta" name="theme-color" content="#ffffff">
-    <title>云尚（高德）地图</title>
+    <title>定制地图</title>
     <link rel="icon" type="image/png" href="images/favicon.png">
 
     <script src="js/jquery-1.12.4.min.js"></script>
-    <script type="text/javascript" src="easyui/jquery.easyui.min.js"></script>
-    <script type="text/javascript" src="easyui/locale/easyui-lang-zh_CN.js"></script>
 
-    <link rel="stylesheet" type="text/css" href="easyui/themes/default/easyui.css">
-    <link rel="stylesheet" type="text/css" href="easyui/themes/icon.css">
+    <script src="config.js?v=1.1.0"></script>
+    <script src="js/utils.js?v=1.1.0"></script>
+    <script src="js/language.js?v=1.1.0"></script>
+    <script src="js/theme.js?v=1.1.0"></script>
+    <script src="js/uiicons.js?v=1.1.0"></script>
+    <script src="js/deviceicons.js?v=1.1.0"></script>
+    <script src="js/entityutils.js?v=1.1.0"></script>
 
-    <script src="config.js?" + Math.random()></script>
-    <script src="js/utils.js?" + Math.random()></script>
-    <script src="js/language.js?" + Math.random()></script>
-    <script src="js/theme.js?" + Math.random()></script>
-    <script src="js/deviceicons.js?" + Math.random()></script>
-    <script src="js/entityutils.js?" + Math.random()></script>
+    <script src="js/dock.js?v=1.1.0"></script>
+    <link rel="stylesheet" href="css/dock.css?v=1.1.0">
 
-    <script src="js/dock.js?" + Math.random()></script>
-    <link rel="stylesheet" href="css/dock.css" />
-
-    <script src="js/map.js?" + Math.random()></script>
-    <link rel="stylesheet" href="css/map.css" />
-    <script src="js/coordinateutil.js?" + Math.random()></script>
+    <script src="js/map.js?v=1.1.0"></script>
+    <link rel="stylesheet" href="css/map.css?v=1.1.0">
+    <script src="js/coordinateutil.js?v=1.1.0"></script>
 
     <script type="text/javascript">
         if (GaodeMapjscode != "") {
@@ -52,8 +48,8 @@
     </script>
     <script src="https://webapi.amap.com/ui/1.0/main.js"></script>
 
-    <script src="js/mapgaode.js?" + Math.random()></script>
-    <script src="js/mapbaidu.js?" + Math.random()></script>
+    <script src="js/mapgaode.js?v=1.1.0"></script>
+    <script src="js/mapbaidu.js?v=1.1.0"></script>
 </head>
 
 <body>
@@ -66,73 +62,98 @@
         </div>
     </div>
 
-    <div id="deviceListWin" class="easyui-window ys-device-panel" title="设备列表"
-        style="width:336px;height:610px;left:12px;top:12px;"
-        data-options="iconCls:'icon-man',modal:false,minimizable:false,maximizable:false,collapsible:false,closed:true,resizable:true,shadow:true">
-        <div class="ys-panel">
-            <div class="ys-panel-toolbar">
-                <input id="deviceSearch" class="ys-search" type="search" placeholder="搜索设备名称…"
-                    autocomplete="off" />
-                <button type="button" id="btnDeviceRefresh" class="ys-mini-btn" title="刷新设备列表">刷新</button>
-            </div>
-
-            <div class="ys-grid-wrap">
-                <table id="deviceListGrid" class="easyui-datagrid">
-                    <thead>
-                        <tr>
-                            <th data-options="field:'ck',checkbox:true,width:26"></th>
-                            <th data-options="field:'name',width:140,formatter:ysNameFormatter">设备名称</th>
-                            <th data-options="field:'state',width:130,formatter:ysStateFormatter">状态</th>
-                            <th data-options="field:'id',hidden:true">ID</th>
-                            <th data-options="field:'lon',hidden:true">经度</th>
-                            <th data-options="field:'lat',hidden:true">纬度</th>
-                            <th data-options="field:'state_r',hidden:true">原始状态</th>
-                        </tr>
-                    </thead>
-                </table>
-                <div id="deviceEmpty" class="ys-empty" hidden>未发现可追踪的设备</div>
-            </div>
-
-            <div class="ys-section">
-                <div class="ys-section-title">回家路线</div>
-                <div class="ys-row">
-                    <a id="btnBackhome" href="javascript:;" class="easyui-linkbutton ys-btn"></a>
-                    <select id="cbBackhome" class="easyui-combobox" style="width:96px"
-                        data-options="valueField:'id',textField:'text',editable:false,panelHeight:'auto',panelAlign:'right'">
-                    </select>
+    <!-- 设备 / 轨迹 / 回家 面板 -->
+    <div id="devicePanel" class="ys-panel" hidden>
+        <div class="ys-panel-card" role="dialog" aria-label="设备列表">
+            <div class="ys-panel-header" id="panelHeader">
+                <div class="ys-panel-title">
+                    <span id="panelTitleText">设备列表</span>
+                    <span id="panelCount" class="ys-count">0</span>
+                </div>
+                <div class="ys-panel-header-actions">
+                    <button type="button" id="btnPanelRefresh" class="ys-icon-btn" title="刷新设备位置"></button>
+                    <button type="button" id="btnPanelClose" class="ys-icon-btn" title="关闭"></button>
                 </div>
             </div>
 
-            <div class="ys-section">
-                <div class="ys-section-title">轨迹回放</div>
-                <div class="ys-row ys-time-row">
-                    <label for="queryTimeFrom">开始</label>
-                    <input class="easyui-datetimebox" id="queryTimeFrom"
-                        data-options="required:true,showSeconds:false" style="width:146px">
+            <div class="ys-tabs" role="tablist">
+                <button type="button" class="ys-tab is-active" data-tab="devices" role="tab">设备</button>
+                <button type="button" class="ys-tab" data-tab="track" role="tab">轨迹回放</button>
+                <button type="button" class="ys-tab" data-tab="route" role="tab">回家路线</button>
+            </div>
+
+            <div class="ys-panel-body">
+                <!-- 设备 -->
+                <div class="ys-pane is-active" data-pane="devices">
+                    <div class="ys-toolbar">
+                        <span class="ys-search-icon" id="searchIcon"></span>
+                        <input id="deviceSearch" class="ys-search" type="search" placeholder="搜索设备名称…"
+                            autocomplete="off">
+                    </div>
+                    <div class="ys-device-list" id="deviceList"></div>
+                    <div class="ys-empty" id="deviceEmpty" hidden>未发现可追踪的设备</div>
                 </div>
-                <div class="ys-row ys-time-row">
-                    <label for="queryTimeTo">结束</label>
-                    <input class="easyui-datetimebox" id="queryTimeTo"
-                        data-options="required:true,showSeconds:false" style="width:146px">
+
+                <!-- 轨迹回放 -->
+                <div class="ys-pane" data-pane="track">
+                    <div class="ys-field">
+                        <label for="trackDeviceSelect">追踪设备</label>
+                        <select id="trackDeviceSelect" class="ys-select"></select>
+                    </div>
+                    <div class="ys-field-row">
+                        <label for="queryTimeFrom">开始</label>
+                        <input id="queryTimeFrom" type="datetime-local" class="ys-input">
+                    </div>
+                    <div class="ys-field-row">
+                        <label for="queryTimeTo">结束</label>
+                        <input id="queryTimeTo" type="datetime-local" class="ys-input">
+                    </div>
+                    <div class="ys-chips">
+                        <button type="button" class="ys-chip" data-range="today">今天</button>
+                        <button type="button" class="ys-chip" data-range="yesterday">昨天</button>
+                        <button type="button" class="ys-chip" data-range="7d">近7天</button>
+                    </div>
+                    <div class="ys-actions">
+                        <button type="button" id="btnQuery" class="ys-btn ys-btn-primary">显示运动轨迹</button>
+                    </div>
+                    <div class="ys-actions" id="playbackActions" hidden>
+                        <button type="button" id="btnDrawStart" class="ys-btn ys-btn-sm">开始动画</button>
+                        <button type="button" id="btnDrawPause" class="ys-btn ys-btn-sm">暂停</button>
+                        <button type="button" id="btnDrawResume" class="ys-btn ys-btn-sm">继续</button>
+                        <button type="button" id="btnDrawStop" class="ys-btn ys-btn-sm">停止</button>
+                    </div>
+                    <div class="ys-hint" id="trackHint"></div>
                 </div>
-                <div class="ys-row ys-presets">
-                    <button type="button" class="ys-chip" data-range="today">今天</button>
-                    <button type="button" class="ys-chip" data-range="yesterday">昨天</button>
-                    <button type="button" class="ys-chip" data-range="7d">近7天</button>
+
+                <!-- 回家路线 -->
+                <div class="ys-pane" data-pane="route">
+                    <div class="ys-field">
+                        <label>设备（可多选）</label>
+                        <div id="routeDeviceList" class="ys-check-list"></div>
+                    </div>
+                    <div class="ys-field">
+                        <label>出行方式</label>
+                        <div class="ys-segmented" id="backhomeMode" role="group">
+                            <button type="button" data-mode="drive" class="is-active">驾车</button>
+                            <button type="button" data-mode="ride">骑行</button>
+                            <button type="button" data-mode="walk">步行</button>
+                        </div>
+                    </div>
+                    <div class="ys-actions">
+                        <button type="button" id="btnBackhome" class="ys-btn ys-btn-primary">显示回家路线</button>
+                    </div>
+                    <div class="ys-hint" id="routeHint"></div>
                 </div>
-                <div class="ys-row">
-                    <a id="btnQuery" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-primary"></a>
-                </div>
-                <div class="ys-row ys-draw-btns">
-                    <a id="btnDrawStart" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
-                    <a id="btnDrawPause" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
-                    <a id="btnDrawResume" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
-                    <a id="btnDrawStop" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
-                </div>
+            </div>
+
+            <div class="ys-panel-footer">
+                <a href="javascript:;" id="linkManageDevices" class="ys-link">管理追踪设备</a>
+                <span class="ys-footer-tip" id="footerTip"></span>
             </div>
         </div>
     </div>
 
+    <!-- 主题选择面板 -->
     <div id="themePanel" class="ys-theme-panel">
         <div class="ys-theme-title">主题模式</div>
         <button type="button" class="ys-theme-option" data-theme-mode="light">
@@ -153,13 +174,13 @@
         <img id="toolbar_zoomout" src="images/toolbar_zoomout_enable.png" width="42" alt="缩小" title="缩小">
         <img id="toolbar_traffic" src="images/toolbar_traffic_disable.png" width="42" alt="路况" title="实时路况">
         <img id="toolbar_homepoint" src="images/toolbar_homepoint_enable.png" width="42" alt="家" title="家的位置">
-        <img id="toolbar_homerange" src="images/toolbar_homerange_enable.png" width="42" alt="范围" title="家的范围">
+        <img id="toolbar_homerange" src="images/toolbar_homerange_enable.png" width="42" alt="家的范围" title="家的范围">
         <img id="toolbar_devicelist" src="images/toolbar_devicelist_disable.png" width="42" alt="设备列表"
             title="设备列表">
         <img id="toolbar_theme" src="images/toolbar_theme_auto.png" width="42" alt="主题模式" title="主题模式">
     </div>
 
-    <script src="index.js?" + Math.random()></script>
+    <script src="index.js?v=1.1.0"></script>
 </body>
 
 </html>

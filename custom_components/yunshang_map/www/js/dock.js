@@ -15,31 +15,49 @@
             return;
         }
 
-        var BASE = 42;   // 图标基准尺寸（px）
         var MAX = 1.16;  // 最大放大倍数
         var MIN = 0.72;  // 最小缩放倍数
         var RADIUS = 190;
+        var centers = [];
+        var dockTop = 0;
+
+        /* dock 布局固定：缓存图标中心点，避免 mousemove 时反复读取布局 */
+        function cacheCenters() {
+            centers = [];
+            var dockRect = dock.getBoundingClientRect();
+            dockTop = dockRect.top;
+            for (var i = 0; i < images.length; i++) {
+                var rect = images[i].getBoundingClientRect();
+                centers.push({
+                    cx: rect.left + rect.width / 2,
+                    cy: rect.top + rect.height / 2
+                });
+            }
+        }
 
         var ticking = false;
         var lastEvent = null;
 
         function apply(ev) {
             ticking = false;
-            var dockRect = dock.getBoundingClientRect();
+            /* 鼠标离底部工具栏较远时不需要处理 */
+            if (ev.clientY < dockTop - RADIUS) {
+                return;
+            }
             for (var i = 0; i < images.length; i++) {
-                var img = images[i];
-                var rect = img.getBoundingClientRect();
-                var cx = rect.left + rect.width / 2;
-                var cy = rect.top + rect.height / 2;
-                var dx = cx - ev.clientX;
-                var dy = cy - ev.clientY;
+                var center = centers[i];
+                if (!center) {
+                    continue;
+                }
+                var dx = center.cx - ev.clientX;
+                var dy = center.cy - ev.clientY;
                 var dist = Math.sqrt(dx * dx + dy * dy);
                 var ratio = dist / RADIUS;
                 if (ratio > 1) {
                     ratio = 1;
                 }
                 var scale = MAX - (MAX - MIN) * ratio;
-                img.style.transform = "scale(" + scale.toFixed(3) + ")";
+                images[i].style.transform = "scale(" + scale.toFixed(3) + ")";
             }
         }
 
@@ -60,6 +78,16 @@
                 images[i].style.transform = "";
             }
         });
+
+        window.addEventListener("resize", cacheCenters, { passive: true });
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) {
+                cacheCenters();
+            }
+        });
+        cacheCenters();
+        setTimeout(cacheCenters, 600);
+        setTimeout(cacheCenters, 2000);
 
         /* 触屏设备：按下时轻微反馈 */
         if ("ontouchstart" in window) {

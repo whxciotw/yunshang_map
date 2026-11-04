@@ -1,7 +1,7 @@
 /**
  * 云尚（高德）地图 - 地图对象统一封装（当前仅使用高德地图）
  */
-function Map() {
+function MapController() {
     this.maps = [
         new MapGaode(),
         new MapBaidu()
@@ -9,9 +9,13 @@ function Map() {
     this.currentMapIndex = 0;
 }
 
-Map.prototype = {
+MapController.prototype = {
     getMap: function () {
         return this.maps[this.currentMapIndex];
+    },
+
+    getTrackInfo: function () {
+        return this.getMap().lastTrackInfo || null;
     },
 
     init: function (coordinate, zone) {
@@ -94,10 +98,11 @@ Map.prototype = {
     },
 
     devicelist: function () {
-        if ($('#deviceListWin').is(":visible")) {
-            $('#deviceListWin').window('close');
-        } else {
-            $('#deviceListWin').window('open');
+        var panel = $('#devicePanel');
+        if (panel.length && panel.hasClass('is-open')) {
+            panel.removeClass('is-open');
+        } else if (panel.length) {
+            panel.removeAttr('hidden').addClass('is-open');
         }
     },
 
@@ -122,6 +127,7 @@ Map.prototype = {
     },
 
     isdevicelist: function () {
-        return $('#deviceListWin').is(":visible");
+        var panel = $('#devicePanel');
+        return panel.length > 0 && panel.hasClass('is-open');
     }
 };

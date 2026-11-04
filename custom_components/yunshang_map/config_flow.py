@@ -45,7 +45,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
             _LOGGER.debug(user_input)
-            return self.async_create_entry(title="云尚（高德）地图", data=user_input)
+            return self.async_create_entry(title="定制地图", data=user_input)
 
         return await self._show_config_form(user_input)
 

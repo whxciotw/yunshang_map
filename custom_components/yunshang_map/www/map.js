@@ -60,7 +60,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
             this.hasstoken = hasstoken;
           })
         }
-        return html`云尚（高德）地图卡片加载中…`
+        return html`定制地图卡片加载中…`
       }
     }
   })
@@ -68,9 +68,9 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   window.customCards = window.customCards || [];
   window.customCards.push({
     type: "yunshang-map",
-    name: "云尚（高德）地图",
+    name: "定制地图",
     preview: true,
-    description: "云尚（高德）地图卡片：在地图卡片中显示设备位置"
+    description: "定制地图卡片：在地图卡片中显示设备位置"
   });
 
 })

@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "云尚（高德）地图",
+                "title": "定制地图",
                 "description": "高德开放平台 API 申请：https://console.amap.com/dev/key/app",
                 "data": {
                     "longtoken": "Home Assistant 长期访问令牌（手机 App 使用或未保存密码时必须填写）",
@@ -20,7 +20,7 @@
     "options": {
         "step": {
             "user": {
-                "title": "云尚（高德）地图 选项",
+                "title": "定制地图 选项",
                 "description": "修改追踪设备后需重载集成才能生效。",
                 "data": {
                     "longtoken": "Home Assistant 长期访问令牌（手机 App 使用或未保存密码时必须填写）",

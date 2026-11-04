@@ -2,7 +2,7 @@
     "config": {
         "step": {
             "user": {
-                "title": "Yunshang Gaode Map",
+                "title": "Custom Map",
                 "description": "AMap (Gaode) open platform API: https://console.amap.com/dev/key/app",
                 "data": {
                     "longtoken": "Home Assistant long-lived access token (required for the mobile app or when the password is not saved)",
@@ -20,7 +20,7 @@
     "options": {
         "step": {
             "user": {
-                "title": "Yunshang Gaode Map - Options",
+                "title": "Custom Map - Options",
                 "description": "Reload the integration after changing the tracked devices.",
                 "data": {
                     "longtoken": "Home Assistant long-lived access token (required for the mobile app or when the password is not saved)",

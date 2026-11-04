@@ -15,7 +15,7 @@ from .manifest import manifest
 
 DOMAIN = manifest.domain
 VERSION = manifest.version
-PANEL_TITLE = "云尚（高德）地图"
+PANEL_TITLE = "定制地图"
 PANEL_URL_PATH = DOMAIN
 WWW_URL_PATH = "/" + DOMAIN + "_www"
 
