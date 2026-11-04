@@ -764,6 +764,10 @@ MapLeaflet.prototype = {
             var wgsPath = [];
             var totalMeters = 0;
             var cum = [0];
+            var times = [];
+            var timeCum = [];
+            var timeTotal = 0;
+            var lastTime = null;
             for (var k = 0; k < points.length; k++) {
                 var p = { lon: points[k].longitude, lat: points[k].latitude };
                 if (k > 0) {
@@ -771,6 +775,18 @@ MapLeaflet.prototype = {
                     totalMeters += seg;
                     cum.push(totalMeters);
                 }
+                var pointTime = points[k].last_updated ? Date.parse(points[k].last_updated) : null;
+                if (isNaN(pointTime)) {
+                    pointTime = null;
+                }
+                times.push(pointTime);
+                if (pointTime != null) {
+                    if (lastTime != null && pointTime > lastTime) {
+                        timeTotal += pointTime - lastTime;
+                    }
+                    lastTime = pointTime;
+                }
+                timeCum.push(timeTotal);
                 wgsPath.push(p);
                 latlngs.push(this._toLatLng(p));
             }
@@ -823,6 +839,9 @@ MapLeaflet.prototype = {
                 anchorPoints: anchorPoints,
                 cum: cum,
                 total: Math.max(totalMeters, 0.001),
+                times: times,
+                timeCum: timeCum,
+                timeTotal: timeTotal,
                 baseDuration: baseDuration,
                 index: 0,
                 distance: 0,
@@ -967,21 +986,38 @@ MapLeaflet.prototype = {
     _applyTrackProgress: function (anim, progress, forceLine) {
         for (var i = 0; i < anim.tracks.length; i++) {
             var tr = anim.tracks[i];
-            var dist = progress * tr.total;
-            tr.distance = dist;
-            var idx = tr.index;
-            while (idx < tr.cum.length - 2 && tr.cum[idx + 1] <= dist) {
-                idx++;
+            var useTime = !!(tr.timeTotal > 0 && tr.timeCum && tr.timeCum.length === tr.cum.length);
+            var axisCum = useTime ? tr.timeCum : tr.cum;
+            var axisTotal = useTime ? tr.timeTotal : tr.total;
+            var target = progress * axisTotal;
+            tr.distance = target;
+
+            /* 二分查找当前所在分段，支持向前/向后拖动 */
+            var idx = 0;
+            var lo = 0;
+            var hi = axisCum.length - 2;
+            while (lo <= hi) {
+                var mid = (lo + hi) >> 1;
+                if (axisCum[mid] <= target) {
+                    idx = mid;
+                    lo = mid + 1;
+                } else {
+                    hi = mid - 1;
+                }
+            }
+            if (idx < 0) {
+                idx = 0;
             }
             tr.index = idx;
+
             var p1 = tr.path[idx];
             var p2 = tr.path[idx + 1];
             if (!p1 || !p2) {
                 continue;
             }
-            var segStart = tr.cum[idx];
-            var segEnd = tr.cum[idx + 1];
-            var tt = segEnd > segStart ? (dist - segStart) / (segEnd - segStart) : 0;
+            var segStart = axisCum[idx];
+            var segEnd = axisCum[idx + 1];
+            var tt = segEnd > segStart ? (target - segStart) / (segEnd - segStart) : 0;
             tt = Math.max(0, Math.min(1, tt));
             tr.marker.setLatLng(L.latLng(
                 p1.lat + (p2.lat - p1.lat) * tt,
@@ -1002,29 +1038,80 @@ MapLeaflet.prototype = {
         }
     },
 
-    /** 取第一条轨迹在当前进度对应的时间戳（毫秒），用于拖动条显示 */
-    _seekTs: function (anim, progress) {
+    /** 取第一条轨迹在当前进度对应的时间与地理位置，用于滑块显示 */
+    _seekInfo: function (anim, progress) {
         if (!anim || !anim.tracks || !anim.tracks.length) {
-            return null;
+            return { progress: progress, ts: null, address: "" };
         }
         var tr = anim.tracks[0];
         if (!tr.points || !tr.points.length) {
-            return null;
+            return { progress: progress, ts: null, address: "" };
         }
-        var dist = progress * tr.total;
+        var useTime = !!(tr.timeTotal > 0 && tr.timeCum && tr.timeCum.length === tr.cum.length);
+        var axisCum = useTime ? tr.timeCum : tr.cum;
+        var target = progress * (useTime ? tr.timeTotal : tr.total);
+
         var idx = 0;
-        while (idx < tr.cum.length - 2 && tr.cum[idx + 1] <= dist) {
-            idx++;
+        var lo = 0;
+        var hi = axisCum.length - 2;
+        while (lo <= hi) {
+            var mid = (lo + hi) >> 1;
+            if (axisCum[mid] <= target) {
+                idx = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
         }
         if (idx >= tr.points.length) {
             idx = tr.points.length - 1;
         }
-        var point = tr.points[idx];
-        if (!point || !point.last_updated) {
-            return null;
+        var point = tr.points[idx] || {};
+        var ts = null;
+        if (useTime) {
+            var firstTs = null;
+            var lastTs = null;
+            for (var i = 0; i < tr.times.length; i++) {
+                if (tr.times[i] != null) {
+                    if (firstTs == null) {
+                        firstTs = tr.times[i];
+                    }
+                    lastTs = tr.times[i];
+                }
+            }
+            if (firstTs != null && lastTs != null && lastTs > firstTs) {
+                ts = firstTs + progress * (lastTs - firstTs);
+            }
         }
-        var ts = Date.parse(point.last_updated);
-        return isNaN(ts) ? null : ts;
+        if (ts == null && point.last_updated) {
+            var parsed = Date.parse(point.last_updated);
+            ts = isNaN(parsed) ? null : parsed;
+        }
+        var address = point.address || "";
+        if (!address && point.latitude !== undefined && point.longitude !== undefined) {
+            /* 没有地址属性时：先看是否在某个区域（家/公司/学校等）内，再退回经纬度 */
+            address = this._zoneNameAt(point.longitude, point.latitude);
+            if (!address) {
+                address = Number(point.latitude).toFixed(5) + ", " + Number(point.longitude).toFixed(5);
+            }
+        }
+        return { progress: progress, ts: ts, address: address };
+    },
+
+    /** 根据坐标返回所在区域名称（zone.home 等） */
+    _zoneNameAt: function (lon, lat) {
+        var zones = this.state.zones || [];
+        for (var i = 0; i < zones.length; i++) {
+            var zone = zones[i];
+            var dist = YSGeo.distanceMeters(
+                { lon: lon, lat: lat },
+                { lon: zone.longitude, lat: zone.latitude }
+            );
+            if (dist <= this._zoneRadius(zone)) {
+                return zone.friendly_name || zone.entity_id || "";
+            }
+        }
+        return "";
     },
 
     /** 拖动进度条：跳转到轨迹的任意位置 */
@@ -1038,10 +1125,7 @@ MapLeaflet.prototype = {
         anim.progress = progress;
         anim.paused = progress > 0 && progress < 1;
         this._applyTrackProgress(anim, progress, true);
-        $(document).trigger("trackProgress", [{
-            progress: progress,
-            ts: this._seekTs(anim, progress)
-        }]);
+        $(document).trigger("trackProgress", [this._seekInfo(anim, progress)]);
     },
 
     getTrackProgress: function () {
@@ -1075,19 +1159,13 @@ MapLeaflet.prototype = {
                 anim.lastLineTs = ts;
                 anim.running = false;
                 anim.paused = false;
-                $(document).trigger("trackProgress", [{
-                    progress: 1,
-                    ts: that._seekTs(anim, 1)
-                }]);
+                $(document).trigger("trackProgress", [that._seekInfo(anim, 1)]);
                 $(document).trigger("trackAnimationEnd");
                 return;
             }
             if (updateLine) {
                 anim.lastLineTs = ts;
-                $(document).trigger("trackProgress", [{
-                    progress: progress,
-                    ts: that._seekTs(anim, progress)
-                }]);
+                $(document).trigger("trackProgress", [that._seekInfo(anim, progress)]);
             }
             that._trackFrame(anim);
         });

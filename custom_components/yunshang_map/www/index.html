@@ -15,28 +15,28 @@
 
     <script src="js/jquery-1.12.4.min.js"></script>
 
-    <script src="config.js?v=1.6.0"></script>
-    <script src="js/utils.js?v=1.6.0"></script>
-    <script src="js/language.js?v=1.6.0"></script>
-    <script src="js/theme.js?v=1.6.0"></script>
-    <script src="js/uiicons.js?v=1.6.0"></script>
-    <script src="js/deviceicons.js?v=1.6.0"></script>
-    <script src="js/entityutils.js?v=1.6.0"></script>
+    <script src="config.js?v=1.7.0"></script>
+    <script src="js/utils.js?v=1.7.0"></script>
+    <script src="js/language.js?v=1.7.0"></script>
+    <script src="js/theme.js?v=1.7.0"></script>
+    <script src="js/uiicons.js?v=1.7.0"></script>
+    <script src="js/deviceicons.js?v=1.7.0"></script>
+    <script src="js/entityutils.js?v=1.7.0"></script>
 
-    <script src="js/dock.js?v=1.6.0"></script>
-    <link rel="stylesheet" href="css/dock.css?v=1.6.0">
+    <script src="js/dock.js?v=1.7.0"></script>
+    <link rel="stylesheet" href="css/dock.css?v=1.7.0">
 
     <link rel="stylesheet" href="leaflet/leaflet.css" />
     <link rel="stylesheet" href="leaflet/markercluster.css" />
     <link rel="stylesheet" href="leaflet/markercluster-default.css" />
-    <script src="leaflet/leaflet.js?v=1.6.0"></script>
-    <script src="leaflet/markercluster.js?v=1.6.0"></script>
-    <script src="leaflet/proj4.js?v=1.6.0"></script>
-    <script src="leaflet/proj4leaflet.js?v=1.6.0"></script>
-    <script src="js/geo.js?v=1.6.0"></script>
-    <script src="js/mapleaflet.js?v=1.6.0"></script>
-    <script src="js/map.js?v=1.6.0"></script>
-    <link rel="stylesheet" href="css/map.css?v=1.6.0">
+    <script src="leaflet/leaflet.js?v=1.7.0"></script>
+    <script src="leaflet/markercluster.js?v=1.7.0"></script>
+    <script src="leaflet/proj4.js?v=1.7.0"></script>
+    <script src="leaflet/proj4leaflet.js?v=1.7.0"></script>
+    <script src="js/geo.js?v=1.7.0"></script>
+    <script src="js/mapleaflet.js?v=1.7.0"></script>
+    <script src="js/map.js?v=1.7.0"></script>
+    <link rel="stylesheet" href="css/map.css?v=1.7.0">
 
 </head>
 
@@ -89,7 +89,7 @@
                 <!-- 轨迹回放 -->
                 <div class="ys-pane" data-pane="track">
                     <div class="ys-field">
-                        <label>追踪设备（可多选，同时显示轨迹）</label>
+                        <label>追踪设备 <span class="ys-field-note">可多选</span></label>
                         <div id="trackDeviceList" class="ys-device-list ys-scroll-list ys-track-list" role="list"></div>
                     </div>
                     <div class="ys-field ys-range-field">
@@ -120,7 +120,10 @@
                     <div class="ys-field ys-range-field" id="seekField" hidden>
                         <div class="ys-field-head">
                             <label for="trackSeek">轨迹位置</label>
-                            <span id="seekPosLabel" class="ys-field-value">--</span>
+                            <span class="ys-seek-info">
+                                <span id="seekAddrLabel" class="ys-seek-addr"></span>
+                                <span id="seekPosLabel" class="ys-field-value">--</span>
+                            </span>
                         </div>
                         <input type="range" id="trackSeek" class="ys-range ys-seek" min="0" max="1000" step="1"
                             value="0" aria-label="轨迹位置">
@@ -131,7 +134,7 @@
                 <!-- 回家路线 -->
                 <div class="ys-pane" data-pane="route">
                     <div class="ys-field">
-                        <label>设备（可多选）</label>
+                        <label>设备 <span class="ys-field-note">可多选</span></label>
                         <div id="routeDeviceList" class="ys-device-list ys-scroll-list" role="list"></div>
                     </div>
                     <div class="ys-field">
@@ -187,7 +190,7 @@
         <img id="toolbar_theme" src="images/toolbar_theme_auto.png" width="42" alt="主题模式" title="主题模式">
     </div>
 
-    <script src="index.js?v=1.6.0"></script>
+    <script src="index.js?v=1.7.0"></script>
 </body>
 
 </html>

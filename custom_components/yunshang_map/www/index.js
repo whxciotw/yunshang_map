@@ -524,9 +524,14 @@ function initPanelDrag() {
             var h = card.getBoundingClientRect().height;
             card.classList.remove("is-dragging");
             if (h < vh * 0.30) {
-                /* 拖到底部：关闭 */
+                /* 拖到底部：保持当前高度直接关闭，避免关闭前先弹回初始高度 */
+                card.style.height = Math.round(h) + "px";
                 closePanel();
-                card.style.height = "";
+                setTimeout(function () {
+                    if (!panelVisible) {
+                        card.style.height = "";
+                    }
+                }, 280);
             } else if (sheetDrag.moved) {
                 /* 吸附到 45% / 68% / 90% 三档 */
                 var snaps = [vh * 0.45, vh * 0.68, vh * 0.90];
@@ -992,15 +997,26 @@ function formatSeekTime(ts) {
     return (d.getMonth() + 1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
 }
 
-function updateSeekUi(progress, ts) {
+function updateSeekUi(info) {
+    if (!info) {
+        return;
+    }
+    var progress = Math.max(0, Math.min(1, Number(info.progress) || 0));
     var seek = document.getElementById("trackSeek");
     if (seek && !seekDragging) {
-        seek.value = String(Math.round(Math.max(0, Math.min(1, progress)) * 1000));
+        seek.value = String(Math.round(progress * 1000));
         updateRangeFill(seek);
+    }
+    var addr = document.getElementById("seekAddrLabel");
+    if (addr) {
+        var text = info.address || "";
+        addr.textContent = text;
+        addr.title = text;
+        addr.hidden = !text;
     }
     var label = document.getElementById("seekPosLabel");
     if (label) {
-        label.textContent = ts ? formatSeekTime(ts) : (Math.round(progress * 100) + "%");
+        label.textContent = info.ts ? formatSeekTime(info.ts) : (Math.round(progress * 100) + "%");
     }
 }
 
@@ -1267,6 +1283,8 @@ function getLocationData(entityId, callback) {
                             lastseen: n.attributes["lastseen"],
                             latest_report_time: n.attributes["latest_report_time"],
                             last_updated: n.last_updated,
+                            address: n.attributes["address"] || n.attributes["location_name"] ||
+                                n.attributes["geocoded_location"] || "",
                             updatedate: (n.attributes["lastseen"] ? "最后出现：" + n.attributes["lastseen"] + "<br/>" : "") +
                                 (n.attributes["latest_report_time"] ? "上报时间：" + n.attributes["latest_report_time"] + "<br/>记录时间：" : "") +
                                 (getDatetime(n.last_updated) ? "" + getDatetime(n.last_updated) : ""),
@@ -1436,13 +1454,12 @@ $(document).on("trackProgress", function (event, info) {
     if (!trackVisible || !info) {
         return;
     }
-    updateSeekUi(info.progress, info.ts);
+    updateSeekUi(info);
 });
 
 $(document).on("mapRebuilt", function () {
     if (trackVisible) {
         map.seek(0);
-        updateSeekUi(0, null);
     }
 });
 
