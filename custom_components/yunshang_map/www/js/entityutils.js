@@ -20,7 +20,8 @@ function ysIconPath(key) {
 /* 按设备名称 / 实体 ID 推断图标（顺序敏感：更具体的写在前面） */
 var YS_ICON_KEYWORDS = [
     [/自行车|单车|脚踏车|bicycle|bike|cycling/i, "bicycle"],
-    [/电动(车|自行车|摩托)|电瓶车|踏板车|e-?bike|scooter|moped/i, "moped"],
+    [/电动自行车|电瓶车|踏板车|e-?bike|scooter|moped/i, "moped"],
+    [/特斯拉|蔚来|小鹏|理想|比亚迪|新能源|电动车|tesla|nio|xpeng|li-auto|byd|car-electric|ev-?car/i, "car-electric"],
     [/摩托|机车|motor/i, "motorcycle"],
     [/卡车|货车|truck|lorry/i, "truck"],
     [/叉车|forklift/i, "forklift"],

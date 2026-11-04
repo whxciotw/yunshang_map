@@ -29,19 +29,68 @@
 
     /** 宿主（Home Assistant）当前是否为深色主题 */
     function hostTheme() {
+        var doc = null;
         try {
-            var doc = global.parent && global.parent !== global ? global.parent.document : null;
-            if (doc && doc.documentElement) {
-                var cls = doc.documentElement.classList;
-                if (cls && cls.contains("dark")) {
+            doc = (global.parent && global.parent !== global) ? global.parent.document : null;
+        } catch (e) {
+            doc = null;
+        }
+        if (!doc || !doc.documentElement) {
+            return null;
+        }
+
+        /* 1) Home Assistant 的 hass.themes.darkMode 最可靠 */
+        try {
+            var ha = doc.querySelector("home-assistant");
+            if (ha && ha.hass && ha.hass.themes &&
+                typeof ha.hass.themes.darkMode === "boolean") {
+                return ha.hass.themes.darkMode ? "dark" : "light";
+            }
+        } catch (e) {
+            /* 忽略 */
+        }
+
+        /* 2) <meta name="color-scheme"> */
+        try {
+            var meta = doc.querySelector('meta[name="color-scheme"]');
+            if (meta) {
+                var content = String(meta.getAttribute("content") || "").toLowerCase();
+                var hasDark = content.indexOf("dark") >= 0;
+                var hasLight = content.indexOf("light") >= 0;
+                if (hasDark && !hasLight) {
                     return "dark";
                 }
-                if (cls && cls.contains("light")) {
+                if (hasLight && !hasDark) {
                     return "light";
                 }
             }
         } catch (e) {
-            /* 跨域或尚未就绪时忽略 */
+            /* 忽略 */
+        }
+
+        /* 3) html 上的 dark / light 类名 */
+        try {
+            var cls = doc.documentElement.classList;
+            if (cls && cls.contains("dark")) {
+                return "dark";
+            }
+            if (cls && cls.contains("light")) {
+                return "light";
+            }
+        } catch (e) {
+            /* 忽略 */
+        }
+
+        /* 4) 按宿主页面背景亮度判断 */
+        try {
+            var bg = global.getComputedStyle(doc.documentElement).backgroundColor;
+            var m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(bg);
+            if (m) {
+                var luminance = (0.299 * Number(m[1]) + 0.587 * Number(m[2]) + 0.114 * Number(m[3])) / 255;
+                return luminance < 0.5 ? "dark" : "light";
+            }
+        } catch (e) {
+            /* 忽略 */
         }
         return null;
     }
@@ -70,9 +119,12 @@
         return t ? t("themeAuto") : "跟随系统";
     }
 
+    var lastResolved = null;
+
     function updateUi() {
         var mode = getMode();
         var resolved = resolve(mode);
+        lastResolved = resolved;
 
         var root = document.documentElement;
         root.setAttribute("data-theme", resolved);
@@ -222,6 +274,17 @@
         }
 
         updateUi();
+
+        /* 自动模式：定时检查宿主主题是否变化 */
+        global.setInterval(function () {
+            if (getMode() !== "auto") {
+                return;
+            }
+            var resolved = resolve("auto");
+            if (resolved !== lastResolved) {
+                updateUi();
+            }
+        }, 4000);
     }
 
     if (document.readyState === "loading") {
