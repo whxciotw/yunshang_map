@@ -159,6 +159,7 @@ body {
 
 .ys-panel-card {
     position: absolute;
+    box-sizing: border-box;
     left: 12px;
     top: 12px;
     width: min(382px, calc(100vw - 24px));
@@ -502,6 +503,81 @@ body {
     align-items: center;
     gap: 2px;
     flex: 0 0 auto;
+}
+
+.ys-device-row {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 轨迹 / 回家路线页签的设备列表（与设备页签同一套行样式） */
+.ys-scroll-list {
+    scroll-snap-type: y proximity;
+    max-height: 280px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+    scrollbar-width: thin;
+}
+
+.ys-select-indicator {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    color: var(--ys-text-dim);
+}
+
+.ys-select-indicator svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.ys-select-indicator.is-on {
+    color: var(--ys-accent);
+}
+
+.ys-route-row {
+    cursor: pointer;
+}
+
+.ys-scroll-list>.ys-device-row {
+    scroll-snap-align: start;
+}
+
+.ys-route-check {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    border: 2px solid rgba(100, 116, 139, .55);
+    border-radius: 50%;
+    background: var(--ys-panel);
+    cursor: pointer;
+    position: relative;
+    transition: background .15s ease, border-color .15s ease;
+}
+
+.ys-route-check:checked {
+    border-color: var(--ys-accent);
+    background: var(--ys-accent);
+}
+
+.ys-route-check:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 /* 状态徽章 */
@@ -1411,7 +1487,99 @@ html[data-theme="dark"] .ys-track-marker-badge {
     background-size: 12px 12px;
 }
 
-/* ---------- 响应式：移动端底部抽屉 ---------- */
+/* ---------- 响应式：手机 / 折叠屏 ---------- */
+
+/* 平板、折叠屏展开：限制浮窗尺寸，避免遮挡过多地图 */
+@media (min-width: 561px) and (max-width: 1024px) {
+    .ys-panel-card {
+        width: min(400px, calc(100vw - 32px));
+        max-height: min(640px, calc(100dvh - 100px));
+    }
+}
+
+/* 矮屏（横屏手机 / 折叠屏半开）：改为全宽底部抽屉，列表保持可滚动 */
+@media (max-height: 520px) {
+    .ys-panel-card {
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+        width: 100%;
+        max-height: calc(100dvh - 8px);
+        border-radius: 16px 16px 0 0;
+        border-bottom: none;
+        transform: translateY(100%);
+        opacity: 1;
+        transition: transform .22s ease;
+    }
+
+    .ys-panel.is-open .ys-panel-card {
+        transform: translateY(0);
+    }
+
+    .ys-panel-header {
+        cursor: default;
+        padding-top: 12px;
+        position: relative;
+    }
+
+    .ys-panel-header::before {
+        content: "";
+        position: absolute;
+        top: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 38px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--ys-border);
+    }
+
+    .ys-scroll-list {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .ys-tab {
+        height: 36px;
+    }
+
+    /* 横屏 / 折叠屏半开：紧凑行高，尽量多显示设备 */
+    .ys-device-row {
+        min-height: 46px;
+        padding: 7px 8px;
+    }
+
+    .ys-avatar {
+        flex: 0 0 34px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .ys-device-name {
+        font-size: 13px;
+    }
+
+    .ys-device-sub {
+        font-size: 11px;
+    }
+
+    .ys-icon-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .ys-input,
+    .ys-select {
+        height: 36px;
+    }
+
+    .ys-panel-body {
+        padding-top: 8px;
+    }
+}
+
+/* 直板手机（竖屏）底部抽屉 */
 @media (max-width: 560px) {
     .ys-panel-card {
         left: 0;
@@ -1419,7 +1587,8 @@ html[data-theme="dark"] .ys-track-marker-badge {
         top: auto;
         bottom: 0;
         width: 100%;
-        max-height: 84vh;
+        max-height: 86vh;
+        max-height: 86dvh;
         border-radius: 18px 18px 0 0;
         border-bottom: none;
         transform: translateY(100%);
@@ -1433,7 +1602,7 @@ html[data-theme="dark"] .ys-track-marker-badge {
 
     .ys-panel-header {
         cursor: default;
-        padding-top: 10px;
+        padding-top: 12px;
         position: relative;
     }
 
@@ -1450,26 +1619,173 @@ html[data-theme="dark"] .ys-track-marker-badge {
     }
 
     .ys-panel-body {
-        padding-bottom: 8px;
+        padding: 8px 12px 4px;
     }
 
-    #dock img {
+    .ys-tabs {
+        padding: 2px 12px 0;
+        gap: 4px;
+    }
+
+    .ys-tab {
+        height: 42px;
+        font-size: 13px;
+    }
+
+    .ys-device-row {
+        padding: 10px 8px;
+        gap: 10px;
+        min-height: 56px;
+        border-radius: 12px;
+    }
+
+    .ys-avatar {
+        flex: 0 0 38px;
         width: 38px;
         height: 38px;
     }
 
+    .ys-device-name {
+        font-size: 14px;
+    }
+
+    .ys-device-sub {
+        font-size: 11.5px;
+    }
+
+    .ys-device-actions {
+        gap: 0;
+    }
+
+    .ys-icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .ys-scroll-list {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .ys-field-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+
+    .ys-field-row>label {
+        flex: none;
+        font-size: 12px;
+    }
+
+    .ys-input {
+        height: 40px;
+        font-size: 13px;
+    }
+
+    .ys-select {
+        height: 36px;
+        font-size: 13px;
+    }
+
+    .ys-chip {
+        height: 34px;
+        padding: 0 14px;
+    }
+
+    .ys-btn {
+        min-height: 40px;
+    }
+
+    .ys-panel-footer {
+        flex-wrap: wrap;
+        row-gap: 6px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .ys-footer-left {
+        flex-wrap: wrap;
+        row-gap: 6px;
+    }
+
+    #dock {
+        bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+
+    #dock img {
+        width: 36px;
+        height: 36px;
+    }
+
     .ys-theme-panel {
-        bottom: 62px;
+        bottom: calc(60px + env(safe-area-inset-bottom));
     }
 }
 
-@media (max-height: 560px) {
-    .ys-panel-card {
-        max-height: 92vh;
+/* 超窄屏（折叠屏外屏等）：紧凑排版 */
+@media (max-width: 340px) {
+    .ys-panel-header {
+        padding-left: 12px;
+        padding-right: 10px;
     }
 
-    .ys-theme-panel {
-        bottom: 60px;
+    .ys-avatar {
+        flex: 0 0 34px;
+        width: 34px;
+        height: 34px;
+    }
+
+    .ys-device-row {
+        padding: 8px 6px;
+        gap: 8px;
+    }
+
+    .ys-device-name {
+        font-size: 13px;
+    }
+
+    .ys-device-sub {
+        font-size: 11px;
+    }
+
+    .ys-icon-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .ys-panel-footer {
+        padding-left: 10px;
+        padding-right: 10px;
+        font-size: 11px;
+    }
+}
+
+/* 触屏设备：加大点击区域，便于单手持机操作 */
+@media (pointer: coarse) {
+    .ys-device-row {
+        min-height: 56px;
+    }
+
+    .ys-chip {
+        min-height: 34px;
+    }
+
+    .ys-btn {
+        min-height: 40px;
+    }
+
+    .ys-icon-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .ys-scroll-list>.ys-device-row {
+    scroll-snap-align: start;
+}
+
+.ys-route-check {
+        width: 22px;
+        height: 22px;
     }
 }
 

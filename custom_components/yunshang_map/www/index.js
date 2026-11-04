@@ -227,7 +227,7 @@ function bindUi() {
         $(this).addClass("is-active");
     });
     $("#btnQuery").on("click", onTrackButtonClick);
-    $(document).on("click", "#trackDeviceChips .ys-device-chip", function () {
+    $(document).on("click", "#trackDeviceList .ys-device-row", function () {
         var id = $(this).attr("data-id");
         if (!id) {
             return;
@@ -367,7 +367,7 @@ function switchTab(tab) {
     }
     SaveState();
     if (tab === "track") {
-        renderTrackDeviceChips();
+        renderTrackDeviceList();
     } else if (tab === "route") {
         renderRouteList();
     }
@@ -512,7 +512,8 @@ function renderDeviceList(force) {
     list.scrollTop = scrollTop;
 }
 
-function renderDeviceRow(device) {
+/** 设备列表通用：头像 */
+function deviceAvatarHtml(device) {
     var avatar;
     if (device.icon_picture) {
         avatar = '<img src="' + escapeHtml(device.icon_picture) + '" alt="" loading="lazy">';
@@ -520,7 +521,11 @@ function renderDeviceRow(device) {
         avatar = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' +
             (device.icon_path || ysIconPath("map-marker-account") || "") + '"/></svg>';
     }
+    return '<div class="ys-avatar ys-avatar-' + (device.state_cls || "zone") + '">' + avatar + '</div>';
+}
 
+/** 设备列表通用：名称 + 状态 + 副标题（距离/用时/地址） */
+function deviceInfoHtml(device) {
     var stateBadge = '<span class="ys-state ys-state-' + (device.state_cls || "zone") + '">' +
         escapeHtml(device.state_label || device.state || "") + '</span>';
 
@@ -536,18 +541,26 @@ function renderDeviceRow(device) {
     }
     var subText = subParts.length ? subParts.join(" · ") : "—";
 
-    var followActive = followDeviceId === device.id;
-    var hidden = !!device.hidden;
-
-    return '<div class="ys-device-row' + (activeDeviceId === device.id ? " is-active" : "") +
-        '" data-id="' + escapeHtml(device.id) + '" role="listitem">' +
-        '<div class="ys-avatar ys-avatar-' + (device.state_cls || "zone") + '">' + avatar + '</div>' +
-        '<div class="ys-device-main">' +
+    return '<div class="ys-device-main">' +
         '<div class="ys-device-name"><span class="ys-device-name-text">' +
         escapeHtml(device.name || device.id) + '</span>' + stateBadge + '</div>' +
         '<div class="ys-device-sub">' + subText + '</div>' +
-        '</div>' +
-        '<div class="ys-device-actions">' +
+        '</div>';
+}
+
+/** 设备列表通用：整行（三个页签共用同一套样式） */
+function deviceRowHtml(device, trailingHtml, extraClass) {
+    return '<div class="ys-device-row ' + (extraClass || "") + '" data-id="' +
+        escapeHtml(device.id) + '" role="listitem">' +
+        deviceAvatarHtml(device) + deviceInfoHtml(device) + (trailingHtml || '') +
+        '</div>';
+}
+
+function renderDeviceRow(device) {
+    var followActive = followDeviceId === device.id;
+    var hidden = !!device.hidden;
+
+    var actions = '<div class="ys-device-actions">' +
         '<button type="button" class="ys-icon-btn' + (hidden ? "" : " is-muted") +
         '" data-action="toggle-visible" title="' + (hidden ? "显示地图标记" : "隐藏地图标记") +
         '" aria-label="' + (hidden ? "显示地图标记" : "隐藏地图标记") + '">' +
@@ -556,7 +569,9 @@ function renderDeviceRow(device) {
         '" data-action="follow" title="' + (followActive ? "取消追踪" : "追踪该设备") +
         '" aria-label="' + (followActive ? "取消追踪" : "追踪该设备") + '">' +
         ysIcon("crosshairs-gps") + '</button>' +
-        '</div></div>';
+        '</div>';
+
+    return deviceRowHtml(device, actions, activeDeviceId === device.id ? "is-active" : "");
 }
 
 function updateEmptyState(count) {
@@ -715,7 +730,7 @@ function handleStates(states) {
         }, 300);
     }
 
-    renderTrackDeviceChips();
+    renderTrackDeviceList();
     renderRouteList();
     renderDeviceList();
 
@@ -759,8 +774,8 @@ function hasPosition(device) {
 
 /* ================= 轨迹 ================= */
 
-function renderTrackDeviceChips() {
-    var container = document.getElementById("trackDeviceChips");
+function renderTrackDeviceList() {
+    var container = document.getElementById("trackDeviceList");
     if (!container) {
         return;
     }
@@ -780,19 +795,9 @@ function renderTrackDeviceChips() {
             continue;
         }
         var active = (activeDeviceId === d.id) || (trackVisible && trackedDeviceId === d.id);
-        var avatar;
-        if (d.icon_picture) {
-            avatar = '<img src="' + escapeHtml(d.icon_picture) + '" alt="">';
-        } else {
-            avatar = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (d.icon_path || "") + '"/></svg>';
-        }
-        html.push('<button type="button" class="ys-device-chip' + (active ? " is-active" : "") +
-            '" data-id="' + escapeHtml(d.id) + '" title="' + escapeHtml(d.name) + '">' +
-            '<span class="ys-chip-avatar ys-avatar-' + (d.state_cls || "zone") + '">' + avatar + '</span>' +
-            '<span class="ys-chip-name">' + escapeHtml(d.name) + '</span>' +
-            '<span class="ys-state ys-state-' + (d.state_cls || "zone") + '">' +
-            escapeHtml(d.state_label || "") + '</span>' +
-            '</button>');
+        var trailing = '<span class="ys-select-indicator' + (active ? " is-on" : "") +
+            '" aria-hidden="true">' + ysIcon(active ? "radiobox-marked" : "radiobox-blank") + '</span>';
+        html.push(deviceRowHtml(d, trailing, active ? "is-active" : ""));
     }
     container.innerHTML = html.length ? html.join("") : '<div class="ys-hint">暂无可选设备</div>';
 }
@@ -801,7 +806,7 @@ function updateTrackSelectSelection(deviceId) {
     if (deviceId) {
         activeDeviceId = deviceId;
     }
-    renderTrackDeviceChips();
+    renderTrackDeviceList();
 }
 
 function getTimeRange() {
@@ -1038,19 +1043,12 @@ function renderRouteList() {
             continue;
         }
         var checked = !!routeSelected[d.id];
-        var avatar;
-        if (d.icon_picture) {
-            avatar = '<img src="' + escapeHtml(d.icon_picture) + '" alt="">';
-        } else {
-            avatar = '<svg viewBox="0 0 24 24"><path d="' + (d.icon_path || "") + '"/></svg>';
-        }
-        html.push('<label class="ys-check-row">' +
-            '<input type="checkbox" value="' + escapeHtml(d.id) + '"' + (checked ? " checked" : "") + '>' +
-            '<span class="ys-check-avatar">' + avatar + '</span>' +
-            '<span class="ys-check-name">' + escapeHtml(d.name) + '</span>' +
-            '<span class="ys-state ys-state-' + (d.state_cls || "zone") + '">' +
-            escapeHtml(d.state_label || "") + '</span>' +
-            '</label>');
+        var checkbox = '<input class="ys-route-check" type="checkbox" value="' +
+            escapeHtml(d.id) + '"' + (checked ? " checked" : "") +
+            ' aria-label="选择 ' + escapeHtml(d.name) + '">';
+        html.push('<label class="ys-device-row ys-route-row' + (checked ? " is-active" : "") +
+            '" data-id="' + escapeHtml(d.id) + '">' +
+            deviceAvatarHtml(d) + deviceInfoHtml(d) + checkbox + '</label>');
     }
     container.innerHTML = html.length ? html.join("") : '<div class="ys-hint">暂无可选设备</div>';
     updateRouteHint();

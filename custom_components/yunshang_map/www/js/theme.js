@@ -302,6 +302,23 @@
 
         updateUi();
 
+        /* 自动模式：前几秒快速重试，解决内嵌卡片 iframe 早于宿主主题就绪的问题 */
+        var fastAttempts = 0;
+        var fastTimer = global.setInterval(function () {
+            if (getMode() !== "auto") {
+                global.clearInterval(fastTimer);
+                return;
+            }
+            var quickResolved = resolve("auto");
+            if (quickResolved !== lastResolved) {
+                updateUi();
+            }
+            fastAttempts++;
+            if (fastAttempts >= 10) {
+                global.clearInterval(fastTimer);
+            }
+        }, 400);
+
         /* 自动模式：定时检查宿主主题是否变化 */
         global.setInterval(function () {
             if (getMode() !== "auto") {
