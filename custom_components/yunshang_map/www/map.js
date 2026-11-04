@@ -7,7 +7,7 @@
  *   geo_location_sources: [gdacs, usgs_earthquakes_feed]   # 或 all
  *   hours_to_show: 24                                       # 0 表示不显示历史轨迹
  *   default_zoom: 14
- *   map_type: amap          # amap / amap-satellite / baidu / baidu-satellite / osm（全球街道）
+ *   map_type: amap          # amap / amap-satellite / baidu / baidu-satellite / osm
  *   theme_mode: auto        # auto / light / dark
  *   aspect_ratio: 16:9       # 可选，控制卡片高度（留空则自适应布局）
  */
@@ -16,17 +16,36 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   const html = LitElement.prototype.html;
   const css = LitElement.prototype.css;
 
-  const CARD_VERSION = "1.12.0";
+  const CARD_VERSION = "1.13.0";
 
   const MAP_TYPES = [
     { value: "amap", label: "高德地图" },
     { value: "amap-satellite", label: "高德卫星" },
     { value: "baidu", label: "百度地图" },
     { value: "baidu-satellite", label: "百度卫星" },
-    { value: "osm", label: "全球街道" },
+    { value: "osm", label: "OSM 地图" },
   ];
 
   const TOKEN_STORAGE = "YUNSHANG_MAP_TOKENS";
+
+  /** 从集成选项读取允许使用的底图类型（默认全部） */
+  let allowedMapTypesPromise = null;
+  function fetchAllowedMapTypes(hass) {
+    if (!hass || typeof hass.callWS !== "function") {
+      return Promise.resolve(null);
+    }
+    if (!allowedMapTypesPromise) {
+      allowedMapTypesPromise = hass
+        .callWS({ type: "yunshang_map", data: { type: "gaodekey" } })
+        .then((result) => {
+          const raw = result && result.maptypes ? String(result.maptypes) : "";
+          const list = raw.split(",").map((v) => v.trim()).filter(Boolean);
+          return list.length ? list : null;
+        })
+        .catch(() => null);
+    }
+    return allowedMapTypesPromise;
+  }
 
   function parseAspectRatio(value) {
     if (!value || typeof value !== "string") {
@@ -57,6 +76,26 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
     constructor() {
       super();
       this._config = {};
+      this._mapTypes = null;
+    }
+
+    updated(changedProps) {
+      if (!this._mapTypes && this.hass) {
+        fetchAllowedMapTypes(this.hass).then((list) => {
+          if (list && list.length) {
+            this._mapTypes = list;
+          } else {
+            this._mapTypes = [];
+          }
+        });
+      }
+    }
+
+    _mapTypeOptions() {
+      if (!this._mapTypes || !this._mapTypes.length) {
+        return MAP_TYPES;
+      }
+      return MAP_TYPES.filter((item) => this._mapTypes.indexOf(item.value) >= 0);
     }
 
     static styles = css`
@@ -102,7 +141,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
         },
         {
           name: "map_type",
-          selector: { select: { options: MAP_TYPES, mode: "dropdown" } },
+          selector: { select: { options: this._mapTypeOptions(), mode: "dropdown" } },
         },
         {
           name: "theme_mode",
@@ -374,6 +413,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
             hasstoken: result.hasstoken || "",
             gaodekey: result.gaodekey || "",
             jscode: result.jscode || "",
+            maptypes: result.maptypes || "",
           };
           try {
             sessionStorage.setItem(TOKEN_STORAGE, JSON.stringify(this._tokens));
@@ -441,6 +481,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
       params.set("zoom", String(zoom !== undefined ? zoom : 14));
       params.set("hours", String(config.hours_to_show !== undefined ? config.hours_to_show : 24));
       params.set("maptype", config.map_type || "amap");
+      params.set("maptypes", (tokens.maptypes || ""));
       params.set("thememode", config.theme_mode || "auto");
       return "/yunshang_map_www/index.html?" + params.toString();
     }

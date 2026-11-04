@@ -2243,3 +2243,20 @@ html[data-theme="dark"] .ys-mode-switch button.is-active {
     opacity: .5;
     cursor: not-allowed;
 }
+
+/* 暂无位置的设备行 */
+.ys-device-row.is-disabled {
+    opacity: .55;
+    cursor: default;
+}
+
+.ys-device-row.is-disabled .ys-device-actions {
+    opacity: .8;
+}
+
+.ys-device-hint {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--ys-text-dim);
+    white-space: nowrap;
+}

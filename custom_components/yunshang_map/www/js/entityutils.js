@@ -207,7 +207,7 @@ function ysBuildDeviceRow(entityId, stateObj) {
     return {
         id: entityIdValue,
         entity_id: entityIdValue,
-        name: attrs.friendly_name || deviceId,
+        name: attrs.friendly_name || entityIdValue,
         lon: attrs.longitude,
         lat: attrs.latitude,
         accuracy: attrs.gps_accuracy || attrs.accuracy || 0,

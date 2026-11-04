@@ -732,6 +732,13 @@ function deviceRowHtml(device, trailingHtml, extraClass) {
 function renderDeviceRow(device) {
     var followActive = followDeviceId === device.id;
     var hidden = !!device.hidden;
+    var positioned = hasPosition(device);
+
+    if (!positioned) {
+        return deviceRowHtml(device,
+            '<div class="ys-device-actions"><span class="ys-device-hint">暂无位置</span></div>',
+            "is-disabled");
+    }
 
     var actions = '<div class="ys-device-actions">' +
         '<button type="button" class="ys-icon-btn' + (hidden ? "" : " is-muted") +
@@ -862,26 +869,35 @@ function handleStates(states) {
             continue;
         }
         var attrs = stateObj.attributes || {};
-        if (attrs.longitude === undefined || attrs.longitude === null ||
-            attrs.latitude === undefined || attrs.latitude === null) {
-            continue;
-        }
+        var hasCoords = !(attrs.longitude === undefined || attrs.longitude === null ||
+            attrs.latitude === undefined || attrs.latitude === null);
         var entityId = stateObj.entity_id;
         var previous = deviceStore[entityId];
+        /* geo_location 必须有坐标；device_tracker 只有“配置过的”或“之前有坐标的”才保留占位，保证数量稳定 */
+        if (!hasCoords && (domain !== "device_tracker" || (!previous && idlist.length === 0))) {
+            continue;
+        }
         var device = ysBuildDeviceRow(entityId, stateObj);
+        device.has_position = hasCoords;
         device.hidden = previous ? !!previous.hidden : !!hiddenIds[entityId];
-        device.distance_text = formatDistance(homePoint, device.lon, device.lat);
+        device.distance_text = hasCoords
+            ? formatDistance(homePoint, device.lon, device.lat)
+            : "暂无位置";
         if (!previous) {
             deviceOrder.push(entityId);
         }
         deviceStore[entityId] = device;
 
-        map.drawdevicemarker(entityId, device.name, { lon: device.lon, lat: device.lat },
-            deviceIconInfo(device), { cls: device.state_cls }, device.accuracy);
-
-        if (trackRealtimeHidden) {
-            map.showdevicemarker(entityId, false);
-        } else if (!previous && device.hidden) {
+        if (hasCoords) {
+            map.drawdevicemarker(entityId, device.name, { lon: device.lon, lat: device.lat },
+                deviceIconInfo(device), { cls: device.state_cls }, device.accuracy);
+            if (trackRealtimeHidden) {
+                map.showdevicemarker(entityId, false);
+            } else if (!previous && device.hidden) {
+                map.showdevicemarker(entityId, false);
+            }
+        } else if (previous && previous.has_position) {
+            /* 之前有坐标、现在没有：隐藏旧标记 */
             map.showdevicemarker(entityId, false);
         }
     }
@@ -974,7 +990,7 @@ function renderTrackDeviceList() {
     var html = [];
     for (var i = 0; i < deviceOrder.length; i++) {
         var d = deviceStore[deviceOrder[i]];
-        if (!d || !hasPosition(d)) {
+        if (!d) {
             continue;
         }
         var checked = trackSelectedOrder.indexOf(d.id) >= 0;
@@ -983,9 +999,10 @@ function renderTrackDeviceList() {
         var checkbox = '<input class="ys-route-check" type="checkbox" value="' +
             escapeHtml(d.id) + '"' + (checked ? " checked" : "") +
             ' aria-label="选择 ' + escapeHtml(d.name) + '">';
+        var noPosHint = hasPosition(d) ? "" : '<span class="ys-device-hint">暂无位置</span>';
         html.push('<label class="ys-device-row ys-track-row' + (checked ? " is-active" : "") +
             '" data-id="' + escapeHtml(d.id) + '">' +
-            deviceAvatarHtml(d) + deviceInfoHtml(d) + colorDot + checkbox + '</label>');
+            deviceAvatarHtml(d) + deviceInfoHtml(d) + noPosHint + colorDot + checkbox + '</label>');
     }
     container.innerHTML = html.length ? html.join("") : '<div class="ys-hint">暂无可选设备</div>';
     updatePlaybackUi();
@@ -1394,7 +1411,8 @@ function selectedTrackIds() {
     var ids = [];
     for (var i = 0; i < trackSelectedOrder.length; i++) {
         var id = trackSelectedOrder[i];
-        if (trackSelected[id] && deviceStore[id] && hasPosition(deviceStore[id])) {
+        /* 不再要求“当前有坐标”：只要设备存在就可以按历史记录回放 */
+        if (trackSelected[id] && deviceStore[id]) {
             ids.push(id);
         }
     }
@@ -1460,9 +1478,10 @@ function loadSelectedTracks() {
     if (!ids.length) {
         /* 默认选中第一个可用设备，方便直接查看 */
         for (var fi = 0; fi < deviceOrder.length; fi++) {
-            if (hasPosition(deviceStore[deviceOrder[fi]])) {
-                trackSelected[deviceOrder[fi]] = true;
-                trackSelectedOrder = [deviceOrder[fi]];
+            var candidate = deviceStore[deviceOrder[fi]];
+            if (candidate && (hasPosition(candidate) || fi === deviceOrder.length - 1)) {
+                trackSelected[candidate.id] = true;
+                trackSelectedOrder = [candidate.id];
                 renderTrackDeviceList();
                 ids = selectedTrackIds();
                 break;

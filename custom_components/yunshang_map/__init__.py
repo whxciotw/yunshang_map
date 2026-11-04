@@ -42,6 +42,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         devicetrackeridlist = ",".join(trackerids)
     else:
         devicetrackeridlist = ""
+    maptypes = entry.options.get("maptypes")
+    if isinstance(maptypes, list):
+        maptypelist = ",".join(maptypes)
+    else:
+        maptypelist = "amap,amap-satellite,baidu,baidu-satellite,osm"
 
     await hass.http.async_register_static_paths(
         [
@@ -66,6 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 f"&gaodekey={gaodekey}"
                 f"&jscode={jscode}"
                 f"&devicetrackeridlist={devicetrackeridlist}"
+                f"&maptypes={maptypelist}"
                 f"&v={VERSION}"
             )
         },
@@ -85,6 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         "hasstoken": hasstoken,
                         "gaodekey": gaodekey,
                         "jscode": jscode,
+                        "maptypes": maptypelist,
                     },
                 )
             )

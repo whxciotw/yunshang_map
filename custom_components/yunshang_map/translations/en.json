@@ -26,7 +26,8 @@
                     "longtoken": "Home Assistant long-lived access token (optional; embedded display reuses the current HA session, only needed when opening the map page directly)",
                     "trackerids": "Tracked devices (show all devices when none is selected)",
                     "gaodekey": "AMap Web JS key (optional; needed for AMap basemaps, home routes and address lookup)",
-                    "jscode": "AMap security code jscode (optional; needed for home routes and address lookup, old keys may leave it empty)"
+                    "jscode": "AMap security code jscode (optional; needed for home routes and address lookup, old keys may leave it empty)",
+                    "maptypes": "Allowed basemap types (default: all)"
                 }
             }
         }

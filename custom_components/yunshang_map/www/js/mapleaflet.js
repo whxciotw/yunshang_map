@@ -84,13 +84,13 @@ var LEAFLET_BASEMAPS = {
         maxZoom: 18
     },
     osm: {
-        label: "全球街道",
+        label: "OSM 地图",
         crs: "wgs",
-        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-        subdomains: "",
+        url: "https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+        subdomains: "abc",
         minZoom: 3,
         maxZoom: 19,
-        attribution: "&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"
+        attribution: "&copy; OpenStreetMap contributors · tiles: OpenStreetMap France (HOT)"
     }
 };
 
@@ -101,12 +101,29 @@ var LEAFLET_TRAFFIC_TILES = {
 
 /* ============================== 工具 ============================== */
 
+/** 当前允许使用的底图（由集成选项控制，默认全部） */
+function ysAllowedBasemapIds() {
+    var raw = (typeof MapTypesAllowed !== "undefined" && MapTypesAllowed) ? String(MapTypesAllowed) : "";
+    var list = raw.split(",").map(function (v) {
+        return v.trim();
+    }).filter(function (v) {
+        return v !== "" && Object.prototype.hasOwnProperty.call(LEAFLET_BASEMAPS, v);
+    });
+    if (!list.length) {
+        for (var key in LEAFLET_BASEMAPS) {
+            if (Object.prototype.hasOwnProperty.call(LEAFLET_BASEMAPS, key)) {
+                list.push(key);
+            }
+        }
+    }
+    return list;
+}
+
 function ysBasemapOptions() {
     var out = [];
-    for (var key in LEAFLET_BASEMAPS) {
-        if (Object.prototype.hasOwnProperty.call(LEAFLET_BASEMAPS, key)) {
-            out.push({ id: key, label: LEAFLET_BASEMAPS[key].label });
-        }
+    var allowed = ysAllowedBasemapIds();
+    for (var i = 0; i < allowed.length; i++) {
+        out.push({ id: allowed[i], label: LEAFLET_BASEMAPS[allowed[i]].label });
     }
     return out;
 }
@@ -129,9 +146,10 @@ MapLeaflet.prototype = {
             savedType = null;
         }
         var queryType = (typeof query !== "undefined" && query.get) ? query.get("maptype") : null;
-        var initialType = queryType || savedType || "amap";
-        if (!LEAFLET_BASEMAPS[initialType]) {
-            initialType = "amap";
+        var allowedTypes = ysAllowedBasemapIds();
+        var initialType = queryType || savedType || allowedTypes[0] || "amap";
+        if (!LEAFLET_BASEMAPS[initialType] || allowedTypes.indexOf(initialType) < 0) {
+            initialType = allowedTypes[0] || "amap";
         }
         this.state.mapType = initialType;
         this.state.centerWgs = { lon: coordinate.lon, lat: coordinate.lat };
@@ -304,7 +322,8 @@ MapLeaflet.prototype = {
     },
 
     setBasemap: function (type) {
-        if (!LEAFLET_BASEMAPS[type] || type === this.state.mapType) {
+        if (!LEAFLET_BASEMAPS[type] || ysAllowedBasemapIds().indexOf(type) < 0 ||
+            type === this.state.mapType) {
             return;
         }
         /* 先用“当前（旧）底图”的坐标系保存视野中心和缩放，再切换底图 */

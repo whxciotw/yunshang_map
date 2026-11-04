@@ -26,7 +26,7 @@ Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracke
 - 追踪设备优先显示图标（实体图片 / mdi 图标 / 名称推断 / 默认图标）
 - 显示设备运动轨迹并回放动画（开始 / 暂停 / 继续 / 停止）
 - 显示回家路线（驾车 / 骑行 / 步行），并计算回家用时
-- 多底图：高德（矢量/卫星）、百度（矢量/卫星）、全球街道（Esri）；路况用底部按钮开关
+- 多底图：高德（矢量/卫星）、百度（矢量/卫星）、OSM（OpenStreetMap France HOT）；路况用底部按钮开关
 - 实时路况、家的位置与范围（默认关闭）、设备列表开关
 - 三种主题：浅色 / 深色 / 跟随系统（底部主题按钮一键切换）
 - Lovelace 卡片：多设备、历史轨迹、可视化编辑器、随卡片尺寸自适应
@@ -64,7 +64,7 @@ Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracke
 ### v1.3.0 更新
 
 15. **地图渲染引擎迁移到 Leaflet（栅格瓦片）**：平移/缩放改为瓦片图层 CSS 变换，和 HA 官方地图卡片一样顺滑；实测拖动、滚轮缩放期间无 50ms 以上的长任务。
-16. **多底图**：高德（矢量/卫星）、百度（矢量/卫星）、全球街道（Esri）共 5 种底图，可在面板底部的「底图」下拉框切换；卡片通过 `map_type` 配置。百度使用 proj4leaflet 自定义 CRS 纠正投影，全球街道为 Esri 瓦片、带版权标注。
+16. **多底图**：高德（矢量/卫星）、百度（矢量/卫星）、OSM 共 5 种底图，可在面板底部的「底图」下拉框切换；卡片通过 `map_type` 配置。百度使用 proj4leaflet 自定义 CRS 纠正投影，OSM 使用 OpenStreetMap France HOT 瓦片并带版权标注。
 17. **多设备历史轨迹同屏**（卡片）：`hours_to_show` 内拉取每个设备的历史位置，按设备颜色绘制（分段渐隐），轨迹点可悬停查看时间，每 60 秒自动刷新。
 18. **卡片配置对齐官方地图卡片**：`entities`、`geo_location_sources`、`hours_to_show`、`default_zoom`、`theme_mode`，另加 `map_type`、`aspect_ratio`；可视化编辑器包含全部选项。
 19. **卡片尺寸自适应**：分区（sections）布局中铺满卡片区域；masonry 布局默认 16:9，可用 `aspect_ratio` 指定比例；拖动改变卡片大小时地图自动跟随（实测 820×520 → 460×300 正确适配）。
@@ -149,8 +149,14 @@ Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracke
 
 58. **修复「显示轨迹」后右上角「适配视野」按钮无效**：多设备轨迹重构后 `fitTrack` 仍引用旧的单轨迹图层；现在会按所有已加载轨迹的范围适配视野。
 59. **回放轨迹时隐藏实时设备图标**：进入轨迹回放后只显示历史轨迹中的移动图标，不再叠加当前实时位置标记；隐藏轨迹后恢复（并保留用户手动隐藏/显示的设置）。
-60. **OSM 底图替换为「全球街道」**：OSM 官方瓦片对嵌入类应用会返回 403 `Access blocked`，现改用 Esri World Street Map（无需 Key、全球可用、带版权标注），内部 `map_type` 仍保留 `osm` 以兼容旧配置。
+60. **OSM 底图替换（v1.13 进一步改用 OSM France HOT 瓦片）**：官方 `tile.openstreetmap.org` 对嵌入类应用会返回 403 `Access blocked`，已改用可用的 OSM 镜像瓦片，`map_type` 仍保留 `osm` 以兼容旧配置。
 61. **统一轨迹设备选择状态**：以选择顺序为唯一准绳，不再因设备暂时未加载而丢失或漂移；进入「轨迹回放」页时会自动刷新一次设备列表，选择结果跨页面、跨刷新保持一致。
+
+### v1.13.0 更新
+
+62. **OSM 底图改为 OSM France HOT 瓦片**：官方 `tile.openstreetmap.org` 对嵌入应用会返回 403 `Access blocked`；现改用 OpenStreetMap France 的 HOT 瓦片（`tile-{a,b,c}.openstreetmap.fr/hot`，全球可用、带 OSM 版权标注），`map_type` 仍为 `osm`，旧配置兼容。
+63. **集成选项新增「可用底图类型」**：可在「选项 → 可用底图类型」中勾选允许展示的底图（默认全选），面板与卡片编辑器的底图下拉会按此过滤；只勾选高德时，百度/OSM 不会出现在选择列表中。
+64. **统一设备数量显示**：轨迹/设备列表会保留「已配置的」或「曾经有坐标的」设备；暂时没有坐标时显示「暂无位置」，不会再出现首次 2 个、再次进入 3 个的数量变化。轨迹回放也不再要求设备当前有坐标（有历史就能回放）。
 
 > 原有功能（轨迹回放、回家路线与用时、路况、家的范围、卡片嵌入等）均保持不变。
 
@@ -164,7 +170,7 @@ Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracke
 | 自动适配视野 / 重置聚焦 | `autoFit` + 聚焦按钮 | ✅ 已实现 |
 | 多实体显示 | `entities` 数组、每实体颜色 | ✅ 卡片已支持多设备（按状态着色） |
 | 可视化编辑器 | 卡片配置 editor | ✅ 已实现（实体多选 + 缩放） |
-| 多底图（高德/百度/卫星/全球街道） | 自定义 CRS + 瓦片图层 | ✅ 已实现（5 种底图，百度用 proj4leaflet 纠正投影） |
+| 多底图（高德/百度/卫星/OSM） | 自定义 CRS + 瓦片图层 | ✅ 已实现（5 种底图，百度用 proj4leaflet 纠正投影） |
 | 多设备历史轨迹同屏（不同颜色、渐隐） | `ha-map-plus` 的 paths 绘制 | ✅ 已实现（卡片 `hours_to_show`） |
 | `hours_to_show` 历史轨迹 | 历史数据 + tooltip 时间 | ✅ 已实现（每 60 秒刷新） |
 | 历史数据获取方式 | `hass.connection` WebSocket 取历史，无需令牌 | ✅ 已实现（内嵌时自动复用 HA 会话） |
@@ -180,7 +186,7 @@ Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracke
 | `geo_location_sources` | `geo_location` 实体的来源（source），多个用逗号分隔；填 `all` 表示全部 | 空 |
 | `hours_to_show` | 显示过去几小时的多设备历史轨迹；0 表示不显示 | 24 |
 | `default_zoom` | 打开时的缩放级别（3-18） | 14 |
-| `map_type` | 底图：amap / amap-satellite / baidu / baidu-satellite / osm（全球街道） | amap |
+| `map_type` | 底图：amap / amap-satellite / baidu / baidu-satellite / osm | amap |
 | `theme_mode` | 主题：auto（跟随 HA）/ light / dark | auto |
 | `aspect_ratio` | 卡片宽高比，如 `16:9`、`4:3`；留空则按布局自适应 | 空 |
 
@@ -208,7 +214,7 @@ aspect_ratio: 16:9
 | --- | --- |
 | 高德地图 / 高德卫星 | 高德栅格瓦片（GCJ02），无需 JS API 即可显示；只有回家路线/地址反查时按需加载高德 JS API |
 | 百度地图 / 百度卫星 | 百度栅格瓦片（BD09），使用 proj4leaflet 自定义 CRS 纠正投影 |
-| 全球街道 | Esri World Street Map（WGS84，无需 Key、全球可用），在地图右下角显示版权标注；内部仍使用 `osm` 作为 map_type |
+| OSM 地图 | OpenStreetMap France HOT 瓦片（WGS84，全球可用），在地图右下角显示 OSM 版权；内部使用 `osm` 作为 map_type |
 | 路况 | 底部工具栏的「路况」按钮开启/关闭（高德/百度瓦片对应各自的路况图层） |
 
 地图渲染使用 [Leaflet](https://leafletjs.com/)（BSD-2-Clause），聚合使用 [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)（MIT），百度投影使用 [proj4js](https://github.com/proj4js/proj4js) 与 [proj4leaflet](https://github.com/kartena/Proj4Leaflet)（MIT）。这些库都已打包在 `www/leaflet/` 下，不依赖外部 CDN。
@@ -234,6 +240,7 @@ HACS → 集成 → 右上角 → 自定义存储库，填入仓库地址 `http:
 | 安全密钥 jscode | **可选**。2021-12 之后申请的 Key 需要同时配置；留空时回家路线按钮会置灰、地址反查会提示。 |
 | Home Assistant 长期访问令牌 | **可选**。内嵌在 HA 中显示时会自动复用当前登录会话（WebSocket），通常无需填写；仅在独立浏览器直接打开地图页面时需要。 |
 | 追踪设备 | 可在「选项」中选择需要显示的 `device_tracker`；不选择则显示全部。 |
+| 可用底图类型 | 可在「选项」中勾选允许展示的底图（默认全选）；未勾选的底图不会出现在面板/卡片的下拉列表中。 |
 
 > 提示：追踪设备只针对 `device_tracker` 类型实体。
 

@@ -12,6 +12,7 @@ if (hasstoken == '') {
 }
 /* 面板模式：devicetrackeridlist；卡片内嵌模式：idlist */
 DeviceTrackerIDList = query.get('devicetrackeridlist', '') || query.get('idlist', '')
+MapTypesAllowed = query.get('maptypes', '')
 EmbedMode = query.get('embed', '') === '1'
 HoursToShow = parseInt(query.get('hours', '0'), 10) || 0
 ThemeModeParam = query.get('thememode', '')

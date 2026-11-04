@@ -60,6 +60,16 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
+MAP_TYPE_OPTIONS = [
+    {"value": "amap", "label": "高德地图"},
+    {"value": "amap-satellite", "label": "高德卫星"},
+    {"value": "baidu", "label": "百度地图"},
+    {"value": "baidu-satellite", "label": "百度卫星"},
+    {"value": "osm", "label": "OSM 地图"},
+]
+ALL_MAP_TYPES = [item["value"] for item in MAP_TYPE_OPTIONS]
+
+
 class OptionsFlow(config_entries.OptionsFlow):
     """云尚（高德）地图 选项流程。"""
 
@@ -108,6 +118,16 @@ class OptionsFlow(config_entries.OptionsFlow):
                             multiple=True,
                             mode=SelectSelectorMode.DROPDOWN,
                             translation_key="trackerids",
+                        )
+                    ),
+                    vol.Optional(
+                        "maptypes",
+                        default=entry.options.get("maptypes", ALL_MAP_TYPES),
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=MAP_TYPE_OPTIONS,
+                            multiple=True,
+                            mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
                 }
