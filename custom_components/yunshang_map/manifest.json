@@ -1,0 +1,10 @@
+{
+    "domain": "yunshang_map",
+    "name": "云尚（高德）地图",
+    "codeowners": ["云尚"],
+    "config_flow": true,
+    "dependencies": ["frontend"],
+    "documentation": "http://192.168.19.3:3021/yunshang/yunshang_map",
+    "issue_tracker": "http://192.168.19.3:3021/yunshang/yunshang_map/issues",
+    "version": "1.0.0"
+}

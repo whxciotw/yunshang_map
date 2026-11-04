@@ -1,0 +1,34 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Yunshang Gaode Map",
+                "description": "AMap (Gaode) open platform API: https://console.amap.com/dev/key/app",
+                "data": {
+                    "longtoken": "Home Assistant long-lived access token (required for the mobile app or when the password is not saved)",
+                    "trackerids": "Tracked devices",
+                    "gaodekey": "AMap Web service key (an invalid key disables the way-home route/time and the dark map)",
+                    "jscode": "Security key (jscode)"
+                }
+            }
+        },
+        "error": {},
+        "abort": {
+            "single_instance_allowed": "Only a single configuration is allowed."
+        }
+    },
+    "options": {
+        "step": {
+            "user": {
+                "title": "Yunshang Gaode Map - Options",
+                "description": "Reload the integration after changing the tracked devices.",
+                "data": {
+                    "longtoken": "Home Assistant long-lived access token (required for the mobile app or when the password is not saved)",
+                    "trackerids": "Tracked devices (show all devices when none is selected)",
+                    "gaodekey": "AMap Web service key (an invalid key disables the way-home route/time and the dark map)",
+                    "jscode": "Security key (jscode)"
+                }
+            }
+        }
+    }
+}

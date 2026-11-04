@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Expires" content="0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Cache-control" content="no-cache, must-revalidate">
+    <meta http-equiv="Cache" content="no-cache">
+    <meta id="themeColorMeta" name="theme-color" content="#ffffff">
+    <title>云尚（高德）地图</title>
+    <link rel="icon" type="image/png" href="images/favicon.png">
+
+    <script src="js/jquery-1.12.4.min.js"></script>
+    <script type="text/javascript" src="easyui/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="easyui/locale/easyui-lang-zh_CN.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="easyui/themes/default/easyui.css">
+    <link rel="stylesheet" type="text/css" href="easyui/themes/icon.css">
+
+    <script src="config.js?" + Math.random()></script>
+    <script src="js/utils.js?" + Math.random()></script>
+    <script src="js/language.js?" + Math.random()></script>
+    <script src="js/theme.js?" + Math.random()></script>
+    <script src="js/deviceicons.js?" + Math.random()></script>
+    <script src="js/entityutils.js?" + Math.random()></script>
+
+    <script src="js/dock.js?" + Math.random()></script>
+    <link rel="stylesheet" href="css/dock.css" />
+
+    <script src="js/map.js?" + Math.random()></script>
+    <link rel="stylesheet" href="css/map.css" />
+    <script src="js/coordinateutil.js?" + Math.random()></script>
+
+    <script type="text/javascript">
+        if (GaodeMapjscode != "") {
+            window._AMapSecurityConfig = {
+                securityJsCode: GaodeMapjscode,
+            }
+        } else if (typeof GaodeMapserviceHost !== "undefined" && GaodeMapserviceHost != "") {
+            window._AMapSecurityConfig = {
+                serviceHost: GaodeMapserviceHost,
+            }
+        }
+    </script>
+
+    <script type="text/javascript">
+        var gaodeMapAPI = "<script src='https://webapi.amap.com/maps?v=1.4.15&key=" + GaodeMapKey + "&plugin=AMap.MarkerClusterer,AMap.Scale,AMap.MapType,AMap.Driving,AMap.Walking,AMap.Riding'><\/script>";
+        document.write(gaodeMapAPI);
+    </script>
+    <script src="https://webapi.amap.com/ui/1.0/main.js"></script>
+
+    <script src="js/mapgaode.js?" + Math.random()></script>
+    <script src="js/mapbaidu.js?" + Math.random()></script>
+</head>
+
+<body>
+    <div id="mapContainer" class="mapContainer"></div>
+
+    <div id="mapLoading" class="map-loading">
+        <div class="map-loading-box">
+            <span class="ys-spinner"></span>
+            <span id="mapLoadingText">地图加载中…</span>
+        </div>
+    </div>
+
+    <div id="deviceListWin" class="easyui-window ys-device-panel" title="设备列表"
+        style="width:336px;height:610px;left:12px;top:12px;"
+        data-options="iconCls:'icon-man',modal:false,minimizable:false,maximizable:false,collapsible:false,closed:true,resizable:true,shadow:true">
+        <div class="ys-panel">
+            <div class="ys-panel-toolbar">
+                <input id="deviceSearch" class="ys-search" type="search" placeholder="搜索设备名称…"
+                    autocomplete="off" />
+                <button type="button" id="btnDeviceRefresh" class="ys-mini-btn" title="刷新设备列表">刷新</button>
+            </div>
+
+            <div class="ys-grid-wrap">
+                <table id="deviceListGrid" class="easyui-datagrid">
+                    <thead>
+                        <tr>
+                            <th data-options="field:'ck',checkbox:true,width:26"></th>
+                            <th data-options="field:'name',width:140,formatter:ysNameFormatter">设备名称</th>
+                            <th data-options="field:'state',width:130,formatter:ysStateFormatter">状态</th>
+                            <th data-options="field:'id',hidden:true">ID</th>
+                            <th data-options="field:'lon',hidden:true">经度</th>
+                            <th data-options="field:'lat',hidden:true">纬度</th>
+                            <th data-options="field:'state_r',hidden:true">原始状态</th>
+                        </tr>
+                    </thead>
+                </table>
+                <div id="deviceEmpty" class="ys-empty" hidden>未发现可追踪的设备</div>
+            </div>
+
+            <div class="ys-section">
+                <div class="ys-section-title">回家路线</div>
+                <div class="ys-row">
+                    <a id="btnBackhome" href="javascript:;" class="easyui-linkbutton ys-btn"></a>
+                    <select id="cbBackhome" class="easyui-combobox" style="width:96px"
+                        data-options="valueField:'id',textField:'text',editable:false,panelHeight:'auto',panelAlign:'right'">
+                    </select>
+                </div>
+            </div>
+
+            <div class="ys-section">
+                <div class="ys-section-title">轨迹回放</div>
+                <div class="ys-row ys-time-row">
+                    <label for="queryTimeFrom">开始</label>
+                    <input class="easyui-datetimebox" id="queryTimeFrom"
+                        data-options="required:true,showSeconds:false" style="width:146px">
+                </div>
+                <div class="ys-row ys-time-row">
+                    <label for="queryTimeTo">结束</label>
+                    <input class="easyui-datetimebox" id="queryTimeTo"
+                        data-options="required:true,showSeconds:false" style="width:146px">
+                </div>
+                <div class="ys-row ys-presets">
+                    <button type="button" class="ys-chip" data-range="today">今天</button>
+                    <button type="button" class="ys-chip" data-range="yesterday">昨天</button>
+                    <button type="button" class="ys-chip" data-range="7d">近7天</button>
+                </div>
+                <div class="ys-row">
+                    <a id="btnQuery" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-primary"></a>
+                </div>
+                <div class="ys-row ys-draw-btns">
+                    <a id="btnDrawStart" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
+                    <a id="btnDrawPause" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
+                    <a id="btnDrawResume" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
+                    <a id="btnDrawStop" href="javascript:;" class="easyui-linkbutton ys-btn ys-btn-mini"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="themePanel" class="ys-theme-panel">
+        <div class="ys-theme-title">主题模式</div>
+        <button type="button" class="ys-theme-option" data-theme-mode="light">
+            <span class="ys-theme-dot ys-theme-dot-light"></span>浅色
+        </button>
+        <button type="button" class="ys-theme-option" data-theme-mode="dark">
+            <span class="ys-theme-dot ys-theme-dot-dark"></span>深色
+        </button>
+        <button type="button" class="ys-theme-option" data-theme-mode="auto">
+            <span class="ys-theme-dot ys-theme-dot-auto"></span>跟随系统
+        </button>
+    </div>
+
+    <div id="ysToast" class="ys-toast"></div>
+
+    <div id="dock">
+        <img id="toolbar_zoomin" src="images/toolbar_zoomin_enable.png" width="42" alt="放大" title="放大">
+        <img id="toolbar_zoomout" src="images/toolbar_zoomout_enable.png" width="42" alt="缩小" title="缩小">
+        <img id="toolbar_traffic" src="images/toolbar_traffic_disable.png" width="42" alt="路况" title="实时路况">
+        <img id="toolbar_homepoint" src="images/toolbar_homepoint_enable.png" width="42" alt="家" title="家的位置">
+        <img id="toolbar_homerange" src="images/toolbar_homerange_enable.png" width="42" alt="范围" title="家的范围">
+        <img id="toolbar_devicelist" src="images/toolbar_devicelist_disable.png" width="42" alt="设备列表"
+            title="设备列表">
+        <img id="toolbar_theme" src="images/toolbar_theme_auto.png" width="42" alt="主题模式" title="主题模式">
+    </div>
+
+    <script src="index.js?" + Math.random()></script>
+</body>
+
+</html>

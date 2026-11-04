@@ -1,0 +1,44 @@
+/* 云尚（高德）地图 - 底部工具栏 */
+#dock {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 1200;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	gap: 8px;
+	padding: 8px 10px 10px;
+	box-sizing: border-box;
+	pointer-events: none;
+	background: linear-gradient(to top, rgba(0, 0, 0, .16), rgba(0, 0, 0, 0));
+}
+
+#dock img {
+	display: block;
+	width: 42px;
+	height: 42px;
+	object-fit: contain;
+	pointer-events: auto;
+	cursor: pointer;
+	transform-origin: center bottom;
+	transition: transform .12s ease-out, filter .2s ease;
+	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .35));
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-user-drag: none;
+	-webkit-touch-callout: none;
+}
+
+#dock img.dock-pressed {
+	transform: scale(.9) !important;
+}
+
+html[data-theme="dark"] #dock {
+	background: linear-gradient(to top, rgba(0, 0, 0, .38), rgba(0, 0, 0, 0));
+}
+
+html[data-theme="dark"] #dock img {
+	filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .65)) brightness(1.04);
+}
