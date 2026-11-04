@@ -12,6 +12,17 @@
     var mq = global.matchMedia ? global.matchMedia("(prefers-color-scheme: dark)") : null;
     var panelOpen = false;
 
+    /* 卡片配置 theme_mode：作为本次加载的初始主题写入，之后用户仍可手动切换 */
+    try {
+        var forcedMode = (typeof ThemeModeParam !== "undefined" && ThemeModeParam)
+            ? String(ThemeModeParam).toLowerCase() : "";
+        if (MODES.indexOf(forcedMode) >= 0) {
+            global.localStorage.setItem(STORAGE_KEY, forcedMode);
+        }
+    } catch (e) {
+        /* 忽略 */
+    }
+
     function normalize(mode) {
         mode = String(mode || "").toLowerCase();
         return MODES.indexOf(mode) >= 0 ? mode : DEFAULT_MODE;
@@ -154,6 +165,10 @@
 
         if (global.jQuery) {
             global.jQuery(document).trigger("themechange", [resolved, mode]);
+            /* 下一帧再触发一次，确保地图初始化/状态更新后也能正确应用深色底图 */
+            global.requestAnimationFrame(function () {
+                global.jQuery(document).trigger("themechange", [resolved, mode]);
+            });
         }
         return resolved;
     }
@@ -224,6 +239,18 @@
     }
 
     function bind() {
+        var optionList = document.querySelectorAll("#themePanel [data-theme-mode]");
+        for (var oi = 0; oi < optionList.length; oi++) {
+            (function (option) {
+                option.addEventListener("click", function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setMode(option.getAttribute("data-theme-mode"));
+                    closePanel();
+                });
+            })(optionList[oi]);
+        }
+
         var btn = document.getElementById("toolbar_theme");
         if (btn) {
             btn.addEventListener("click", function (event) {

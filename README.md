@@ -6,7 +6,7 @@
 
 > 仓库名 / 集成域：`yunshang_map`；**前端（侧边栏、地图页面、Lovelace 卡片、集成页面）显示名为「定制地图」。**
 
-Home Assistant 自定义集成：在高德地图上显示设备追踪（`device_tracker`）位置、运动轨迹回放、回家路线与时间，支持深色 / 浅色 / 跟随系统三种主题。
+Home Assistant 自定义集成：在地图上显示设备追踪（`device_tracker` / `geo_location`）位置、运动轨迹回放、回家路线与时间，支持高德 / 百度 / OSM 多种底图与深色 / 浅色 / 跟随系统三种主题。
 
 本项目 Fork 自 [dscao/gaode_maps](https://github.com/dscao/gaode_maps)（墨澜地图），并在此基础上统一了中英文名称、补全中文化界面、增加主题切换并优化了设备对话框的 UI 与交互。
 
@@ -26,8 +26,10 @@ Home Assistant 自定义集成：在高德地图上显示设备追踪（`device_
 - 追踪设备优先显示图标（实体图片 / mdi 图标 / 名称推断 / 默认图标）
 - 显示设备运动轨迹并回放动画（开始 / 暂停 / 继续 / 停止）
 - 显示回家路线（驾车 / 骑行 / 步行），并计算回家用时
-- 实时路况、家的位置与范围、设备列表开关
+- 多底图：高德（矢量/卫星/路况）、百度（矢量/卫星/路况）、OSM
+- 实时路况、家的位置与范围（默认关闭）、设备列表开关
 - 三种主题：浅色 / 深色 / 跟随系统（底部主题按钮一键切换）
+- Lovelace 卡片：多设备、历史轨迹、可视化编辑器、随卡片尺寸自适应
 
 ## 本版本相对上游的改动
 
@@ -59,6 +61,20 @@ Home Assistant 自定义集成：在高德地图上显示设备追踪（`device_
 13. **卡片可视化编辑器**：`custom:yunshang-map` 现在支持可视化编辑（实体多选 + 缩放级别），不再提示「此类元素没有可视化编辑器」；同时支持一个卡片显示多个设备，并自动适配视野。
 14. 从 [ryanh7/map-card](https://github.com/ryanh7/map-card) 借鉴了 GPS 精度圈、自动适配视野、实体多选与配置项组织方式。
 
+### v1.3.0 更新
+
+15. **地图渲染引擎迁移到 Leaflet（栅格瓦片）**：平移/缩放改为瓦片图层 CSS 变换，和 HA 官方地图卡片一样顺滑；实测拖动、滚轮缩放期间无 50ms 以上的长任务。
+16. **多底图**：高德（矢量/卫星/路况）、百度（矢量/卫星/路况）、OSM 共 7 种底图，可在面板底部的「底图」下拉框切换；卡片通过 `map_type` 配置。百度使用 proj4leaflet 自定义 CRS 纠正投影，OSM 带版权标注。
+17. **多设备历史轨迹同屏**（卡片）：`hours_to_show` 内拉取每个设备的历史位置，按设备颜色绘制（分段渐隐），轨迹点可悬停查看时间，每 60 秒自动刷新。
+18. **卡片配置对齐官方地图卡片**：`entities`、`geo_location_sources`、`hours_to_show`、`default_zoom`、`theme_mode`，另加 `map_type`、`aspect_ratio`；可视化编辑器包含全部选项。
+19. **卡片尺寸自适应**：分区（sections）布局中铺满卡片区域；masonry 布局默认 16:9，可用 `aspect_ratio` 指定比例；拖动改变卡片大小时地图自动跟随（实测 820×520 → 460×300 正确适配）。
+20. **轨迹动画改用实体的图标/头像**（不再使用小汽车图片），有 `entity_picture` 时显示头像。
+21. **默认不显示「家的位置」和「家的范围」**，需要时点底部工具栏图标开启。
+22. **移除底部放大/缩小按钮**：改用滚轮 / 双指缩放，底部工具栏更简洁。
+23. **轨迹页设备选择改成徽章列表**：头像 + 名称 + 状态，横向滚动，与设备列表/回家路线页签风格统一；播放前默认选中第一个可用设备。
+24. **修复深色模式切换**：主题选项改为直接绑定事件并二次应用，点击「深色/浅色/跟随系统」立即生效（地图瓦片、面板、标记样式同步切换）。
+25. **高德 JS 按需加载**：只有「回家路线」需要路线计算时才加载高德 JS API，首屏更快、也不影响底图显示。
+
 > 原有功能（轨迹回放、回家路线与用时、路况、家的范围、卡片嵌入等）均保持不变。
 
 ### 关于借鉴 ryan 的 map-card
@@ -71,29 +87,52 @@ Home Assistant 自定义集成：在高德地图上显示设备追踪（`device_
 | 自动适配视野 / 重置聚焦 | `autoFit` + 聚焦按钮 | ✅ 已实现 |
 | 多实体显示 | `entities` 数组、每实体颜色 | ✅ 卡片已支持多设备（按状态着色） |
 | 可视化编辑器 | 卡片配置 editor | ✅ 已实现（实体多选 + 缩放） |
-| 多底图（高德/百度/卫星/路况/OSM） | 自定义 CRS + 瓦片图层 | ⏳ 目前用高德 MapType 控件切换卫星/路况；百度/OSM 可后续加 |
-| 多设备历史轨迹同屏（不同颜色、渐隐） | `ha-map-plus` 的 paths 绘制 | 💡 建议后续：多设备轨迹对比 |
-| `hours_to_show` 历史轨迹 | websocket 实时订阅 + tooltip 时间 | 💡 建议后续：卡片内嵌历史轨迹 |
-| 卡片 aspect_ratio / geo_location_sources | 卡片布局与数据源配置 | 💡 视需要再加 |
+| 多底图（高德/百度/卫星/路况/OSM） | 自定义 CRS + 瓦片图层 | ✅ 已实现（7 种底图，百度用 proj4leaflet 纠正投影） |
+| 多设备历史轨迹同屏（不同颜色、渐隐） | `ha-map-plus` 的 paths 绘制 | ✅ 已实现（卡片 `hours_to_show`） |
+| `hours_to_show` 历史轨迹 | 历史数据 + tooltip 时间 | ✅ 已实现（每 60 秒刷新） |
+| 卡片 aspect_ratio / geo_location_sources | 卡片布局与数据源配置 | ✅ 已实现 |
 
-### 卡片可视化编辑器与多设备配置
+### 卡片可视化编辑器与配置项
 
-在仪表盘「添加卡片 → 按卡片 → 定制地图」即可用可视化编辑器选择：
+在仪表盘「添加卡片 → 按卡片 → 定制地图」即可用可视化编辑器配置（参考 HA 官方地图卡片的选项）：
 
-- **设备实体（可多选）**：`entities`（也兼容旧的 `entity_id`）
-- **地图缩放级别**：`zoom`（3-18，默认 15）
+| 配置项 | 说明 | 默认 |
+| --- | --- | --- |
+| `entities` | 设备实体（可多选，兼容旧 `entity_id`） | 必填 |
+| `geo_location_sources` | `geo_location` 实体的来源（source），多个用逗号分隔；填 `all` 表示全部 | 空 |
+| `hours_to_show` | 显示过去几小时的多设备历史轨迹；0 表示不显示 | 24 |
+| `default_zoom` | 打开时的缩放级别（3-18） | 14 |
+| `map_type` | 底图：amap / amap-satellite / amap-traffic / baidu / baidu-satellite / baidu-traffic / osm | amap |
+| `theme_mode` | 主题：auto（跟随 HA）/ light / dark | auto |
+| `aspect_ratio` | 卡片宽高比，如 `16:9`、`4:3`；留空则按布局自适应 | 空 |
 
-等价的 YAML：
+等价 YAML：
 
 ```yaml
 type: custom:yunshang-map
 entities:
   - device_tracker.tesla_location
   - device_tracker.es6_location
-zoom: 15
+hours_to_show: 24
+default_zoom: 14
+map_type: amap
+theme_mode: auto
+aspect_ratio: 16:9
 ```
 
-配置多个实体时，卡片会自动适配视野显示全部设备。
+- 多设备时自动适配视野；卡片里点底部「设备列表」按钮可打开设备列表 / 轨迹回放 / 回家路线。
+- 分区（sections）布局下卡片会铺满所占区域；masonry 布局默认 16:9，可通过 `aspect_ratio` 调整。
+- 拖动改变卡片大小时地图会自动调整尺寸。
+
+### 底图与第三方库
+
+| 底图 | 说明 |
+| --- | --- |
+| 高德地图 / 高德卫星 / 高德路况 | 高德栅格瓦片（GCJ02），无需 JS API 即可显示；只有回家路线计算时按需加载高德 JS API |
+| 百度地图 / 百度卫星 / 百度路况 | 百度栅格瓦片（BD09），使用 proj4leaflet 自定义 CRS 纠正投影 |
+| OSM 地图 | OpenStreetMap 标准瓦片（WGS84），在地图右下角显示版权标注 |
+
+地图渲染使用 [Leaflet](https://leafletjs.com/)（BSD-2-Clause），聚合使用 [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)（MIT），百度投影使用 [proj4js](https://github.com/proj4js/proj4js) 与 [proj4leaflet](https://github.com/kartena/Proj4Leaflet)（MIT）。这些库都已打包在 `www/leaflet/` 下，不依赖外部 CDN。
 
 ## 安装
 
@@ -112,7 +151,7 @@ HACS → 集成 → 右上角 → 自定义存储库，填入仓库地址 `http:
 
 | 配置项 | 说明 |
 | --- | --- |
-| 高德地图 Web 端 Key | 必填。在 [高德开放平台](https://console.amap.com/dev/key/app) 申请；不正确将无法显示回家路线/时间，也无法使用深色地图。 |
+| 高德地图 Web 端 Key | 必填。在 [高德开放平台](https://console.amap.com/dev/key/app) 申请；仅「回家路线/回家用时」的路线计算需要（按需加载），不影响底图与轨迹回放。 |
 | 安全密钥 jscode | 2021-12 之后申请的 Key 需要同时配置，不需要则留空。 |
 | Home Assistant 长期访问令牌 | 推荐配置。手机 App 使用或登录时未保存密码时必须填写。 |
 | 追踪设备 | 可在「选项」中选择需要显示的 `device_tracker`；不选择则显示全部。 |

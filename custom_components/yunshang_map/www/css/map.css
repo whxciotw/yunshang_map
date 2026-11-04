@@ -1187,6 +1187,230 @@ html[data-theme="dark"] .amap-info-sharp {
     background: transparent;
 }
 
+
+/* ---------- Leaflet 地图 ---------- */
+.leaflet-container {
+    background: var(--ys-bg);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+/* 深色模式：栅格瓦片使用滤镜，保持平移性能 */
+.leaflet-container.ys-map-dark .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.92) saturate(0.65);
+}
+
+/* 本身就是深色底图（OSM 深色）时不再叠加滤镜 */
+.leaflet-container.ys-map-dark.ys-map-dark-native .leaflet-tile-pane {
+    filter: none;
+}
+
+.leaflet-control-scale-line {
+    background: rgba(255, 255, 255, .78);
+    color: #333;
+    border-color: #666;
+    font-size: 11px;
+}
+
+html[data-theme="dark"] .leaflet-control-scale-line {
+    background: rgba(23, 28, 36, .78);
+    color: var(--ys-text);
+    border-color: var(--ys-border);
+}
+
+.ys-leaflet-marker,
+.ys-leaflet-cluster,
+.ys-leaflet-zone,
+.ys-leaflet-track-marker {
+    background: none;
+    border: none;
+}
+
+/* 聚合点 */
+.ys-cluster {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 25%, #55aaff, #1677ff);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .35);
+    border: 2px solid rgba(255, 255, 255, .85);
+}
+
+/* 区域名称 */
+.ys-zone-marker {
+    transform: translate(-50%, -100%);
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    background: var(--ys-label-bg);
+    color: var(--ys-label-fg);
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+    border: 1px solid rgba(22, 163, 74, .45);
+    box-shadow: 0 1px 4px rgba(15, 23, 42, .25);
+}
+
+/* 轨迹动画标记：使用实体图标/图片 */
+.ys-track-marker {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ys-track-marker-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 3px solid var(--ys-accent);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .4);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ys-track-marker-badge .ys-track-svg {
+    width: 22px;
+    height: 22px;
+    fill: var(--ys-accent);
+    display: block;
+}
+
+.ys-track-marker-badge .ys-track-picture {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+html[data-theme="dark"] .ys-track-marker-badge {
+    background: #1f2631;
+}
+
+/* 轨迹点时间提示 */
+.ys-track-tooltip {
+    background: var(--ys-panel) !important;
+    color: var(--ys-text) !important;
+    border: 1px solid var(--ys-border) !important;
+    box-shadow: var(--ys-shadow) !important;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 6px 8px !important;
+    border-radius: 8px !important;
+}
+
+.ys-track-tooltip::before {
+    display: none !important;
+}
+
+/* ---------- 轨迹页签：设备徽章列表 ---------- */
+.ys-device-chips {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 2px 2px 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.ys-device-chip {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 230px;
+    padding: 4px 10px 4px 4px;
+    border-radius: 999px;
+    border: 1px solid var(--ys-border);
+    background: var(--ys-bg-alt);
+    color: var(--ys-text);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.ys-device-chip:hover {
+    border-color: var(--ys-accent);
+}
+
+.ys-device-chip.is-active {
+    background: var(--ys-accent-soft);
+    border-color: var(--ys-accent);
+    color: var(--ys-accent);
+    font-weight: 600;
+}
+
+.ys-chip-avatar {
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ys-panel);
+    border: 1px solid var(--ys-border);
+}
+
+.ys-chip-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ys-chip-avatar svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.ys-chip-name {
+    max-width: 108px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- 底图选择 ---------- */
+.ys-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.ys-basemap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--ys-text-dim);
+}
+
+.ys-select-sm {
+    width: auto;
+    min-width: 92px;
+    height: 26px;
+    padding: 0 22px 0 6px;
+    font-size: 12px;
+    border-radius: 8px;
+    background-position: right 4px center;
+    background-size: 12px 12px;
+}
+
 /* ---------- 响应式：移动端底部抽屉 ---------- */
 @media (max-width: 560px) {
     .ys-panel-card {

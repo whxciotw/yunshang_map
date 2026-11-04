@@ -3,8 +3,7 @@
  */
 function MapController() {
     this.maps = [
-        new MapGaode(),
-        new MapBaidu()
+        new MapLeaflet()
     ];
     this.currentMapIndex = 0;
 }
@@ -22,17 +21,17 @@ MapController.prototype = {
         this.getMap().init(coordinate, zone);
     },
 
-    /** 切换地图底图样式：'amap://styles/dark' / 'amap://styles/normal' */
+    /** 切换地图底图样式：dark / light */
     setMapStyle: function (style) {
         var currentMap = this.getMap();
-        if (currentMap && currentMap.map) {
-            currentMap.map.setMapStyle(style);
+        if (currentMap && currentMap.setMapStyle) {
+            currentMap.setMapStyle(style === "amap://styles/dark" ? "dark" : style);
         }
     },
 
-    query: function (coordinate, flag) {
+    query: function (coordinate, flag, iconInfo) {
         if (flag && coordinate && coordinate.length > 0) {
-            this.getMap().query(coordinate);
+            this.getMap().query(coordinate, iconInfo);
         }
         this.getMap().trackplayback(flag);
     },
@@ -55,6 +54,28 @@ MapController.prototype = {
 
     center: function (coordinate) {
         this.getMap().center(coordinate);
+    },
+
+    /** 切换底图：amap / amap-satellite / amap-traffic / baidu / baidu-satellite / baidu-traffic / osm / osm-dark */
+    setBasemap: function (type) {
+        this.getMap().setBasemap(type);
+    },
+
+    getBasemap: function () {
+        return this.getMap().getBasemap();
+    },
+
+    getBasemapOptions: function () {
+        return ysBasemapOptions();
+    },
+
+    /** 多设备历史轨迹 */
+    setHistoryPaths: function (paths) {
+        this.getMap().setHistoryPaths(paths);
+    },
+
+    clearHistoryPaths: function () {
+        this.getMap().clearHistoryPaths();
     },
 
     drawdevicemarker: function (deviceid, lableName, coordinate, icon, stateInfo, accuracy) {

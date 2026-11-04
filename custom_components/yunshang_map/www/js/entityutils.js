@@ -196,16 +196,17 @@ function ysStateFormatter(value, row) {
     return html;
 }
 
-/** 把状态对象转换成设备列表/地图需要的数据（保持旧字段兼容） */
-function ysBuildDeviceRow(deviceId, stateObj) {
+/** 把状态对象转换成设备列表/地图需要的数据（id 使用完整 entity_id） */
+function ysBuildDeviceRow(entityId, stateObj) {
     var stateObjSafe = stateObj || {};
     var attrs = stateObjSafe.attributes || {};
     var icon = ysResolveDeviceIcon(stateObjSafe);
     var stateInfo = ysDeviceStateInfo(stateObjSafe);
+    var entityIdValue = entityId || stateObjSafe.entity_id || "";
 
     return {
-        id: deviceId,
-        entity_id: "device_tracker." + deviceId,
+        id: entityIdValue,
+        entity_id: entityIdValue,
         name: attrs.friendly_name || deviceId,
         lon: attrs.longitude,
         lat: attrs.latitude,
@@ -221,4 +222,17 @@ function ysBuildDeviceRow(deviceId, stateObj) {
         icon_picture: icon.picture || "",
         icon_data_uri: ysIconDataUri(icon, stateInfo.cls === "unknown" ? "#8b95a5" : "#1677ff"),
     };
+}
+
+/** 轨迹动画使用的移动标记内容（使用实体图标/图片，而不是小汽车图标） */
+function ysTrackMarkerHtml(icon) {
+    var iconHtml;
+    if (icon && icon.kind === "picture" && icon.picture) {
+        iconHtml = '<img class="ys-track-picture" src="' + escapeHtml(icon.picture) + '" alt="">';
+    } else {
+        var path = (icon && icon.path) ? icon.path : ysIconPath("map-marker-account");
+        iconHtml = '<svg class="ys-track-svg" viewBox="0 0 24 24" aria-hidden="true">' +
+            '<path d="' + path + '"/></svg>';
+    }
+    return '<div class="ys-track-marker"><div class="ys-track-marker-badge">' + iconHtml + '</div></div>';
 }

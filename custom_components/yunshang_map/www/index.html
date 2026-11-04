@@ -15,41 +15,29 @@
 
     <script src="js/jquery-1.12.4.min.js"></script>
 
-    <script src="config.js?v=1.2.0"></script>
-    <script src="js/utils.js?v=1.2.0"></script>
-    <script src="js/language.js?v=1.2.0"></script>
-    <script src="js/theme.js?v=1.2.0"></script>
-    <script src="js/uiicons.js?v=1.2.0"></script>
-    <script src="js/deviceicons.js?v=1.2.0"></script>
-    <script src="js/entityutils.js?v=1.2.0"></script>
+    <script src="config.js?v=1.3.0"></script>
+    <script src="js/utils.js?v=1.3.0"></script>
+    <script src="js/language.js?v=1.3.0"></script>
+    <script src="js/theme.js?v=1.3.0"></script>
+    <script src="js/uiicons.js?v=1.3.0"></script>
+    <script src="js/deviceicons.js?v=1.3.0"></script>
+    <script src="js/entityutils.js?v=1.3.0"></script>
 
-    <script src="js/dock.js?v=1.2.0"></script>
-    <link rel="stylesheet" href="css/dock.css?v=1.2.0">
+    <script src="js/dock.js?v=1.3.0"></script>
+    <link rel="stylesheet" href="css/dock.css?v=1.3.0">
 
-    <script src="js/map.js?v=1.2.0"></script>
-    <link rel="stylesheet" href="css/map.css?v=1.2.0">
-    <script src="js/coordinateutil.js?v=1.2.0"></script>
+    <link rel="stylesheet" href="leaflet/leaflet.css" />
+    <link rel="stylesheet" href="leaflet/markercluster.css" />
+    <link rel="stylesheet" href="leaflet/markercluster-default.css" />
+    <script src="leaflet/leaflet.js?v=1.3.0"></script>
+    <script src="leaflet/markercluster.js?v=1.3.0"></script>
+    <script src="leaflet/proj4.js?v=1.3.0"></script>
+    <script src="leaflet/proj4leaflet.js?v=1.3.0"></script>
+    <script src="js/geo.js?v=1.3.0"></script>
+    <script src="js/mapleaflet.js?v=1.3.0"></script>
+    <script src="js/map.js?v=1.3.0"></script>
+    <link rel="stylesheet" href="css/map.css?v=1.3.0">
 
-    <script type="text/javascript">
-        if (GaodeMapjscode != "") {
-            window._AMapSecurityConfig = {
-                securityJsCode: GaodeMapjscode,
-            }
-        } else if (typeof GaodeMapserviceHost !== "undefined" && GaodeMapserviceHost != "") {
-            window._AMapSecurityConfig = {
-                serviceHost: GaodeMapserviceHost,
-            }
-        }
-    </script>
-
-    <script type="text/javascript">
-        var gaodeMapAPI = "<script src='https://webapi.amap.com/maps?v=1.4.15&key=" + GaodeMapKey + "&plugin=AMap.MarkerClusterer,AMap.Scale,AMap.MapType,AMap.Driving,AMap.Walking,AMap.Riding'><\/script>";
-        document.write(gaodeMapAPI);
-    </script>
-    <script src="https://webapi.amap.com/ui/1.0/main.js"></script>
-
-    <script src="js/mapgaode.js?v=1.2.0"></script>
-    <script src="js/mapbaidu.js?v=1.2.0"></script>
 </head>
 
 <body>
@@ -101,8 +89,8 @@
                 <!-- 轨迹回放 -->
                 <div class="ys-pane" data-pane="track">
                     <div class="ys-field">
-                        <label for="trackDeviceSelect">追踪设备</label>
-                        <select id="trackDeviceSelect" class="ys-select"></select>
+                        <label>选择追踪设备</label>
+                        <div id="trackDeviceChips" class="ys-device-chips"></div>
                     </div>
                     <div class="ys-field-row">
                         <label for="queryTimeFrom">开始</label>
@@ -161,7 +149,13 @@
             </div>
 
             <div class="ys-panel-footer">
-                <a href="javascript:;" id="linkManageDevices" class="ys-link">管理追踪设备</a>
+                <div class="ys-footer-left">
+                    <a href="javascript:;" id="linkManageDevices" class="ys-link">管理追踪设备</a>
+                    <label class="ys-basemap">
+                        <span>底图</span>
+                        <select id="basemapSelect" class="ys-select ys-select-sm"></select>
+                    </label>
+                </div>
                 <span class="ys-footer-tip" id="footerTip"></span>
             </div>
         </div>
@@ -184,8 +178,6 @@
     <div id="ysToast" class="ys-toast"></div>
 
     <div id="dock">
-        <img id="toolbar_zoomin" src="images/toolbar_zoomin_enable.png" width="42" alt="放大" title="放大">
-        <img id="toolbar_zoomout" src="images/toolbar_zoomout_enable.png" width="42" alt="缩小" title="缩小">
         <img id="toolbar_traffic" src="images/toolbar_traffic_disable.png" width="42" alt="路况" title="实时路况">
         <img id="toolbar_homepoint" src="images/toolbar_homepoint_enable.png" width="42" alt="家" title="家的位置">
         <img id="toolbar_homerange" src="images/toolbar_homerange_enable.png" width="42" alt="家的范围" title="家的范围">
@@ -194,7 +186,7 @@
         <img id="toolbar_theme" src="images/toolbar_theme_auto.png" width="42" alt="主题模式" title="主题模式">
     </div>
 
-    <script src="index.js?v=1.2.0"></script>
+    <script src="index.js?v=1.3.0"></script>
 </body>
 
 </html>

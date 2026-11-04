@@ -37,10 +37,21 @@ var lastTrackDuration = 0;
 var lastTrackOriginalCount = 0;
 var lastTrackDrawnCount = 0;
 
+/* 卡片内嵌模式 / 历史轨迹 */
+var embedMode = false;
+var hoursToShow = 0;
+var historyTimer = null;
+var historyLoaded = false;
+var historyStarted = false;
+
+var DEVICE_COLORS = ["#1677ff", "#16a34a", "#f59e0b", "#7c3aed", "#dc2626", "#0891b2", "#ea580c", "#db2777"];
+
 var STORAGE_STATE = "yunshang_map_state";
 
 $(function () {
     storage = window.localStorage;
+    embedMode = (query.get("embed") === "1");
+    hoursToShow = parseInt(query.get("hours") || "0", 10) || 0;
     initAuthToken();
     if (!authToken && !newToken) {
         showMapError(t("tokenMissing"), t("tokenMissingDetail"));
@@ -60,7 +71,7 @@ $(function () {
                 homePoint = { 'lon': 116.397428, 'lat': 39.90923 };
             }
             try {
-                if (typeof AMap === "undefined" || typeof AMapUI === "undefined") {
+                if (typeof L === "undefined") {
                     showMapError(t("mapLoadFailed"), t("mapLoadFailedDetail"));
                     return;
                 }
@@ -123,18 +134,14 @@ function initStaticUi() {
     $("#btnQuery").text(t("trackShow"));
     $("#btnBackhome").text(t("backShow"));
     $("#linkManageDevices").text("管理追踪设备");
+    if (embedMode) {
+        $("#linkManageDevices").hide();
+    }
+    initBasemapSelect();
 }
 
 function bindUi() {
-    /* 底部工具栏 */
-    $("#toolbar_zoomin").on("click", function () {
-        map.zoomin();
-        syncToolbarState(["zoomin", "zoomout"]);
-    });
-    $("#toolbar_zoomout").on("click", function () {
-        map.zoomout();
-        syncToolbarState(["zoomin", "zoomout"]);
-    });
+    /* 底部工具栏（放大/缩小改为滚轮/双指缩放，不再显示按钮） */
     $("#toolbar_traffic").on("click", function () {
         map.traffic();
         syncToolbarState(["traffic"]);
@@ -220,8 +227,8 @@ function bindUi() {
         $(this).addClass("is-active");
     });
     $("#btnQuery").on("click", onTrackButtonClick);
-    $("#trackDeviceSelect").on("change", function () {
-        var id = $(this).val();
+    $(document).on("click", "#trackDeviceChips .ys-device-chip", function () {
+        var id = $(this).attr("data-id");
         if (!id) {
             return;
         }
@@ -266,6 +273,19 @@ function bindUi() {
         updateRouteHint();
     });
     $("#btnBackhome").on("click", onBackhomeButtonClick);
+
+    /* 底图切换 */
+    $("#basemapSelect").on("change", function () {
+        var type = $(this).val();
+        if (type && map.getBasemap && map.getBasemap() !== type) {
+            map.setBasemap(type);
+            try {
+                window.localStorage.setItem("yunshang_map_basemap", type);
+            } catch (e) {
+                /* 忽略 */
+            }
+        }
+    });
 
     /* 管理追踪设备 -> 跳转 HA 集成选项 */
     $("#linkManageDevices").on("click", function () {
@@ -347,7 +367,7 @@ function switchTab(tab) {
     }
     SaveState();
     if (tab === "track") {
-        updateTrackSelect();
+        renderTrackDeviceChips();
     } else if (tab === "route") {
         renderRouteList();
     }
@@ -627,15 +647,29 @@ function handleStates(states) {
     if (!states || !states.length) {
         return;
     }
-    var idlist = (DeviceTrackerIDList || "").replace(/device_tracker\./g, "").split(",");
-    idlist = idlist.filter(function (v) { return v !== ""; });
+    var idlist = (DeviceTrackerIDList || "").split(",").map(function (v) {
+        v = v.trim();
+        if (v && v.indexOf(".") === -1) {
+            v = "device_tracker." + v;
+        }
+        return v;
+    }).filter(function (v) {
+        return v !== "";
+    });
 
     for (var index in states) {
         var stateObj = states[index];
         if (!stateObj || !stateObj.entity_id) {
             continue;
         }
-        if (stateObj.entity_id.indexOf("device_tracker.") !== 0) {
+        var domain = stateObj.entity_id.split(".")[0];
+        if (domain !== "device_tracker" && domain !== "geo_location") {
+            continue;
+        }
+        if (idlist.length > 0 && idlist.indexOf(stateObj.entity_id) === -1) {
+            continue;
+        }
+        if (idlist.length === 0 && domain !== "device_tracker") {
             continue;
         }
         var attrs = stateObj.attributes || {};
@@ -643,30 +677,21 @@ function handleStates(states) {
             attrs.latitude === undefined || attrs.latitude === null) {
             continue;
         }
-        var deviceId = stateObj.entity_id.replace("device_tracker.", "");
-        if (idlist.length > 0 && idlist.indexOf(deviceId) === -1) {
-            continue;
-        }
-
-        var previous = deviceStore[deviceId];
-        var device = ysBuildDeviceRow(deviceId, stateObj);
-        device.hidden = previous ? !!previous.hidden : !!hiddenIds[deviceId];
+        var entityId = stateObj.entity_id;
+        var previous = deviceStore[entityId];
+        var device = ysBuildDeviceRow(entityId, stateObj);
+        device.hidden = previous ? !!previous.hidden : !!hiddenIds[entityId];
         device.distance_text = formatDistance(homePoint, device.lon, device.lat);
-
         if (!previous) {
-            deviceOrder.push(deviceId);
+            deviceOrder.push(entityId);
         }
-        deviceStore[deviceId] = device;
+        deviceStore[entityId] = device;
 
-        map.drawdevicemarker(deviceId, device.name, { lon: device.lon, lat: device.lat }, {
-            kind: device.icon_kind,
-            picture: device.icon_picture,
-            path: device.icon_path,
-            key: device.icon_key
-        }, { cls: device.state_cls }, device.accuracy);
+        map.drawdevicemarker(entityId, device.name, { lon: device.lon, lat: device.lat },
+            deviceIconInfo(device), { cls: device.state_cls }, device.accuracy);
 
         if (!previous && device.hidden) {
-            map.showdevicemarker(deviceId, false);
+            map.showdevicemarker(entityId, false);
         }
     }
 
@@ -682,7 +707,6 @@ function handleStates(states) {
             map.center({ lon: followed.lon, lat: followed.lat });
         }
     } else if (!hasAutoFitted && mapInitialized) {
-        /* 首次加载自动适配视野，让所有设备与家都在画面中（借鉴 map-card 的 autoFit） */
         hasAutoFitted = true;
         setTimeout(function () {
             if (deviceOrder.length > 0) {
@@ -691,9 +715,23 @@ function handleStates(states) {
         }, 300);
     }
 
-    updateTrackSelect();
+    renderTrackDeviceChips();
     renderRouteList();
     renderDeviceList();
+
+    if (embedMode && hoursToShow && deviceOrder.length && !historyStarted) {
+        startHistoryPolling();
+    }
+}
+
+/** 设备的图标信息（用于地图标记与轨迹动画） */
+function deviceIconInfo(device) {
+    return {
+        kind: device.icon_kind,
+        picture: device.icon_picture,
+        path: device.icon_path,
+        key: device.icon_key
+    };
 }
 
 function formatDistance(from, lon, lat) {
@@ -721,42 +759,49 @@ function hasPosition(device) {
 
 /* ================= 轨迹 ================= */
 
-function updateTrackSelect() {
-    var select = document.getElementById("trackDeviceSelect");
-    var current = select.value || activeDeviceId || trackedDeviceId;
-    var html = [];
-    for (var i = 0; i < deviceOrder.length; i++) {
-        var d = deviceStore[deviceOrder[i]];
-        if (d && hasPosition(d)) {
-            html.push('<option value="' + escapeHtml(d.id) + '">' + escapeHtml(d.name) + '</option>');
-        }
+function renderTrackDeviceChips() {
+    var container = document.getElementById("trackDeviceChips");
+    if (!container) {
+        return;
     }
-    if (!html.length) {
-        html.push('<option value="">暂无可追踪设备</option>');
-    }
-    select.innerHTML = html.join("");
-    var candidate = current;
-    if (!candidate || !deviceStore[candidate] || !hasPosition(deviceStore[candidate])) {
-        candidate = null;
-        for (var j = 0; j < deviceOrder.length; j++) {
-            if (hasPosition(deviceStore[deviceOrder[j]])) {
-                candidate = deviceOrder[j];
+    /* 未选中设备时默认选中第一个有坐标的设备 */
+    if (!activeDeviceId || !deviceStore[activeDeviceId]) {
+        for (var di = 0; di < deviceOrder.length; di++) {
+            if (hasPosition(deviceStore[deviceOrder[di]])) {
+                activeDeviceId = deviceOrder[di];
                 break;
             }
         }
     }
-    if (candidate) {
-        select.value = candidate;
+    var html = [];
+    for (var i = 0; i < deviceOrder.length; i++) {
+        var d = deviceStore[deviceOrder[i]];
+        if (!d || !hasPosition(d)) {
+            continue;
+        }
+        var active = (activeDeviceId === d.id) || (trackVisible && trackedDeviceId === d.id);
+        var avatar;
+        if (d.icon_picture) {
+            avatar = '<img src="' + escapeHtml(d.icon_picture) + '" alt="">';
+        } else {
+            avatar = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + (d.icon_path || "") + '"/></svg>';
+        }
+        html.push('<button type="button" class="ys-device-chip' + (active ? " is-active" : "") +
+            '" data-id="' + escapeHtml(d.id) + '" title="' + escapeHtml(d.name) + '">' +
+            '<span class="ys-chip-avatar ys-avatar-' + (d.state_cls || "zone") + '">' + avatar + '</span>' +
+            '<span class="ys-chip-name">' + escapeHtml(d.name) + '</span>' +
+            '<span class="ys-state ys-state-' + (d.state_cls || "zone") + '">' +
+            escapeHtml(d.state_label || "") + '</span>' +
+            '</button>');
     }
+    container.innerHTML = html.length ? html.join("") : '<div class="ys-hint">暂无可选设备</div>';
 }
 
 function updateTrackSelectSelection(deviceId) {
-    var select = document.getElementById("trackDeviceSelect");
-    if (select && deviceId && deviceStore[deviceId] && hasPosition(deviceStore[deviceId])) {
-        if (select.querySelector('option[value="' + deviceId + '"]')) {
-            select.value = deviceId;
-        }
+    if (deviceId) {
+        activeDeviceId = deviceId;
     }
+    renderTrackDeviceChips();
 }
 
 function getTimeRange() {
@@ -827,7 +872,15 @@ function setTrackHint(text, isError) {
 
 function onTrackButtonClick() {
     if (!trackVisible) {
-        var id = document.getElementById("trackDeviceSelect").value || activeDeviceId;
+        var id = activeDeviceId || trackedDeviceId;
+        if (!id || !deviceStore[id]) {
+            for (var fi = 0; fi < deviceOrder.length; fi++) {
+                if (hasPosition(deviceStore[deviceOrder[fi]])) {
+                    id = deviceOrder[fi];
+                    break;
+                }
+            }
+        }
         if (!id || !deviceStore[id]) {
             ysToast(t("noDeviceSelected"), true);
             switchTab("devices");
@@ -871,7 +924,7 @@ function loadTrack(deviceId) {
         }
         trackedDeviceId = deviceId;
         trackVisible = true;
-        map.query(points, true);
+        map.query(points, true, deviceIconInfo(device));
         map.setTrackSpeed(trackSpeedMultiplier);
         $("#btnQuery").text(t("trackHide"));
         $("#playbackActions").removeAttr("hidden");
@@ -927,14 +980,12 @@ function hideTrack() {
     SaveState();
 }
 
-function getLocationData(deviceId, callback) {
-    var strDeviceId = "device_tracker." + deviceId;
+function getLocationData(entityId, callback) {
     var range = getTimeRange();
     var strFrom = getStandardDatetime(range.from);
     var strTo = getStandardDatetime(range.to);
-
     var url = HomeAssistantWebAPIUrl + "/api/history/period/" + strFrom +
-        "?end_time=" + strTo + "&filter_entity_id=" + strDeviceId;
+        "?end_time=" + strTo + "&filter_entity_id=" + encodeURIComponent(entityId);
 
     var arr = [];
     $.ajax({
@@ -960,6 +1011,9 @@ function getLocationData(deviceId, callback) {
                             lastseen: n.attributes["lastseen"],
                             latest_report_time: n.attributes["latest_report_time"],
                             last_updated: n.last_updated,
+                            updatedate: (n.attributes["lastseen"] ? "最后出现：" + n.attributes["lastseen"] + "<br/>" : "") +
+                                (n.attributes["latest_report_time"] ? "上报时间：" + n.attributes["latest_report_time"] + "<br/>记录时间：" : "") +
+                                (getDatetime(n.last_updated) ? "" + getDatetime(n.last_updated) : ""),
                             lnglat: [n.attributes["longitude"], n.attributes["latitude"]]
                         });
                     }
@@ -1087,7 +1141,8 @@ $(document).on("mapInitFinished", function () {
     }
     hideMapLoading();
     applyMapTheme();
-    syncToolbarState(["zoomin", "zoomout", "traffic", "homepoint", "homerange", "devicelist"]);
+    syncToolbarState(["traffic", "homepoint", "homerange", "devicelist"]);
+    syncBasemapSelect();
     refreshDevices(false);
     if (pollTimer) {
         clearInterval(pollTimer);
@@ -1095,11 +1150,6 @@ $(document).on("mapInitFinished", function () {
     pollTimer = setInterval(function () {
         refreshDevices(false);
     }, 10000);
-});
-
-/* 只在缩放结束时同步工具栏状态，避免每帧刷新图片造成卡顿 */
-$(document).on("mapzoomend", function () {
-    syncToolbarState(["zoomin", "zoomout"]);
 });
 
 $(document).on("themechange", function () {
@@ -1233,6 +1283,133 @@ function loadZones(arrZone, callback) {
     });
     if (callback) {
         callback();
+    }
+}
+
+/* ================= 底图切换 ================= */
+
+function initBasemapSelect() {
+    var select = document.getElementById("basemapSelect");
+    if (!select || !map.getBasemapOptions) {
+        return;
+    }
+    var options = map.getBasemapOptions();
+    var html = [];
+    for (var i = 0; i < options.length; i++) {
+        html.push('<option value="' + options[i].id + '">' + options[i].label + '</option>');
+    }
+    select.innerHTML = html.join("");
+    syncBasemapSelect();
+}
+
+function syncBasemapSelect() {
+    var select = document.getElementById("basemapSelect");
+    if (!select) {
+        return;
+    }
+    var current = null;
+    if (map.getBasemap) {
+        current = map.getBasemap();
+    }
+    if (!current) {
+        try {
+            current = window.localStorage.getItem("yunshang_map_basemap");
+        } catch (e) {
+            current = null;
+        }
+    }
+    if (current) {
+        select.value = current;
+    }
+}
+
+/* ================= 多设备历史轨迹（卡片模式） ================= */
+
+function startHistoryPolling() {
+    if (!embedMode || !hoursToShow || historyStarted) {
+        return;
+    }
+    historyStarted = true;
+    fetchHistoryPaths();
+    if (historyTimer) {
+        clearInterval(historyTimer);
+    }
+    historyTimer = setInterval(fetchHistoryPaths, 60000);
+}
+
+function fetchHistoryPaths() {
+    if (!embedMode || !hoursToShow || !deviceOrder.length) {
+        return;
+    }
+    var end = new Date();
+    var start = new Date(end.getTime() - hoursToShow * 3600 * 1000);
+    var from = getStandardDatetime(start);
+    var to = getStandardDatetime(end);
+    var entities = deviceOrder.slice();
+    var pending = entities.length;
+    var paths = [];
+
+    for (var i = 0; i < entities.length; i++) {
+        (function (index) {
+            var entityId = entities[index];
+            var url = HomeAssistantWebAPIUrl + "/api/history/period/" + from +
+                "?end_time=" + to + "&filter_entity_id=" + encodeURIComponent(entityId);
+            $.ajax({
+                type: "GET",
+                url: url,
+                beforeSend: function (request) {
+                    request.setRequestHeader("x-ha-access", authToken);
+                    request.setRequestHeader("Authorization", newToken);
+                },
+                cache: false,
+                async: true,
+                dataType: "json",
+                success: function (data) {
+                    if (data && data.length && data[0]) {
+                        var points = [];
+                        for (var j = 0; j < data[0].length; j++) {
+                            var n = data[0][j];
+                            if (!n.attributes) {
+                                continue;
+                            }
+                            var lon = n.attributes.longitude;
+                            var lat = n.attributes.latitude;
+                            if (lon === undefined || lon === null || lat === undefined || lat === null) {
+                                continue;
+                            }
+                            points.push({ lon: lon, lat: lat, time: getDatetime(n.last_updated) });
+                        }
+                        if (points.length > 1) {
+                            var maxPoints = 240;
+                            if (points.length > maxPoints) {
+                                var step = Math.ceil(points.length / maxPoints);
+                                var sampled = [];
+                                for (var k = 0; k < points.length; k += step) {
+                                    sampled.push(points[k]);
+                                }
+                                sampled.push(points[points.length - 1]);
+                                points = sampled;
+                            }
+                            var device = deviceStore[entityId] || {};
+                            paths.push({
+                                id: entityId,
+                                name: device.name || entityId,
+                                color: DEVICE_COLORS[index % DEVICE_COLORS.length],
+                                points: points
+                            });
+                        }
+                    }
+                    pending--;
+                    if (pending === 0 && map.setHistoryPaths) {
+                        map.setHistoryPaths(paths);
+                        historyLoaded = true;
+                    }
+                },
+                error: function () {
+                    pending--;
+                }
+            });
+        })(i);
     }
 }
 
