@@ -15,20 +15,20 @@
 
     <script src="js/jquery-1.12.4.min.js"></script>
 
-    <script src="config.js?v=1.1.0"></script>
-    <script src="js/utils.js?v=1.1.0"></script>
-    <script src="js/language.js?v=1.1.0"></script>
-    <script src="js/theme.js?v=1.1.0"></script>
-    <script src="js/uiicons.js?v=1.1.0"></script>
-    <script src="js/deviceicons.js?v=1.1.0"></script>
-    <script src="js/entityutils.js?v=1.1.0"></script>
+    <script src="config.js?v=1.2.0"></script>
+    <script src="js/utils.js?v=1.2.0"></script>
+    <script src="js/language.js?v=1.2.0"></script>
+    <script src="js/theme.js?v=1.2.0"></script>
+    <script src="js/uiicons.js?v=1.2.0"></script>
+    <script src="js/deviceicons.js?v=1.2.0"></script>
+    <script src="js/entityutils.js?v=1.2.0"></script>
 
-    <script src="js/dock.js?v=1.1.0"></script>
-    <link rel="stylesheet" href="css/dock.css?v=1.1.0">
+    <script src="js/dock.js?v=1.2.0"></script>
+    <link rel="stylesheet" href="css/dock.css?v=1.2.0">
 
-    <script src="js/map.js?v=1.1.0"></script>
-    <link rel="stylesheet" href="css/map.css?v=1.1.0">
-    <script src="js/coordinateutil.js?v=1.1.0"></script>
+    <script src="js/map.js?v=1.2.0"></script>
+    <link rel="stylesheet" href="css/map.css?v=1.2.0">
+    <script src="js/coordinateutil.js?v=1.2.0"></script>
 
     <script type="text/javascript">
         if (GaodeMapjscode != "") {
@@ -48,8 +48,8 @@
     </script>
     <script src="https://webapi.amap.com/ui/1.0/main.js"></script>
 
-    <script src="js/mapgaode.js?v=1.1.0"></script>
-    <script src="js/mapbaidu.js?v=1.1.0"></script>
+    <script src="js/mapgaode.js?v=1.2.0"></script>
+    <script src="js/mapbaidu.js?v=1.2.0"></script>
 </head>
 
 <body>
@@ -61,6 +61,10 @@
             <span id="mapLoadingText">地图加载中…</span>
         </div>
     </div>
+
+    <button type="button" id="btnFitView" class="ys-floating-btn" title="适配视野">
+        <span id="fitViewIcon"></span>
+    </button>
 
     <!-- 设备 / 轨迹 / 回家 面板 -->
     <div id="devicePanel" class="ys-panel" hidden>
@@ -115,6 +119,16 @@
                     </div>
                     <div class="ys-actions">
                         <button type="button" id="btnQuery" class="ys-btn ys-btn-primary">显示运动轨迹</button>
+                    </div>
+                    <div class="ys-field">
+                        <label>动画速度</label>
+                        <div class="ys-segmented ys-speed" id="trackSpeed" role="group">
+                            <button type="button" data-speed="0.5">0.5×</button>
+                            <button type="button" data-speed="1" class="is-active">1×</button>
+                            <button type="button" data-speed="2">2×</button>
+                            <button type="button" data-speed="4">4×</button>
+                            <button type="button" data-speed="8">8×</button>
+                        </div>
                     </div>
                     <div class="ys-actions" id="playbackActions" hidden>
                         <button type="button" id="btnDrawStart" class="ys-btn ys-btn-sm">开始动画</button>
@@ -180,7 +194,7 @@
         <img id="toolbar_theme" src="images/toolbar_theme_auto.png" width="42" alt="主题模式" title="主题模式">
     </div>
 
-    <script src="index.js?v=1.1.0"></script>
+    <script src="index.js?v=1.2.0"></script>
 </body>
 
 </html>

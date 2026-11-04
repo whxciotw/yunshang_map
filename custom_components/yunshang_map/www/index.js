@@ -31,6 +31,11 @@ var pollTimer = null;
 var activeTab = "devices";
 var panelVisible = false;
 var lastListSignature = "";
+var trackSpeedMultiplier = 1;
+var hasAutoFitted = false;
+var lastTrackDuration = 0;
+var lastTrackOriginalCount = 0;
+var lastTrackDrawnCount = 0;
 
 var STORAGE_STATE = "yunshang_map_state";
 
@@ -109,6 +114,7 @@ function initStaticUi() {
     document.getElementById("btnPanelRefresh").innerHTML = ysIcon("refresh");
     document.getElementById("btnPanelClose").innerHTML = ysIcon("close");
     document.getElementById("searchIcon").innerHTML = ysIcon("magnify");
+    document.getElementById("fitViewIcon").innerHTML = ysIcon("image-filter-center-focus");
     $("#btnPanelRefresh").attr("title", "刷新设备位置").attr("aria-label", "刷新设备位置");
     $("#btnPanelClose").attr("title", "关闭").attr("aria-label", "关闭");
     $("#trackHint").text("");
@@ -142,6 +148,15 @@ function bindUi() {
         syncToolbarState(["homerange"]);
     });
     $("#toolbar_devicelist").on("click", togglePanel);
+
+    /* 适配视野 */
+    $("#btnFitView").on("click", function () {
+        if (trackVisible) {
+            map.fitTrack();
+        } else {
+            map.fitAll();
+        }
+    });
 
     /* 面板开合 */
     $("#btnPanelClose").on("click", closePanel);
@@ -214,6 +229,9 @@ function bindUi() {
         if (trackVisible) {
             loadTrack(id);
         }
+    });
+    $(document).on("click", "#trackSpeed [data-speed]", function () {
+        setTrackSpeed(parseFloat($(this).attr("data-speed")));
     });
     $("#btnDrawStart").on("click", function () {
         map.DrawStart();
@@ -645,7 +663,7 @@ function handleStates(states) {
             picture: device.icon_picture,
             path: device.icon_path,
             key: device.icon_key
-        }, { cls: device.state_cls });
+        }, { cls: device.state_cls }, device.accuracy);
 
         if (!previous && device.hidden) {
             map.showdevicemarker(deviceId, false);
@@ -663,6 +681,14 @@ function handleStates(states) {
         if (followed && hasPosition(followed)) {
             map.center({ lon: followed.lon, lat: followed.lat });
         }
+    } else if (!hasAutoFitted && mapInitialized) {
+        /* 首次加载自动适配视野，让所有设备与家都在画面中（借鉴 map-card 的 autoFit） */
+        hasAutoFitted = true;
+        setTimeout(function () {
+            if (deviceOrder.length > 0) {
+                map.fitAll();
+            }
+        }, 300);
     }
 
     updateTrackSelect();
@@ -846,19 +872,48 @@ function loadTrack(deviceId) {
         trackedDeviceId = deviceId;
         trackVisible = true;
         map.query(points, true);
+        map.setTrackSpeed(trackSpeedMultiplier);
         $("#btnQuery").text(t("trackHide"));
         $("#playbackActions").removeAttr("hidden");
         updateTrackSelectSelection(deviceId);
         var info = map.getTrackInfo ? map.getTrackInfo() : null;
-        var hint = "已加载「" + device.name + "」的轨迹，共 " + points.length + " 个点";
-        if (info && info.drawn < info.original) {
-            hint += "（点较多，已抽样显示 " + info.drawn + " 个点以保证流畅）";
+        if (info && info.durationSec) {
+            lastTrackDuration = info.durationSec;
         }
-        setTrackHint(hint);
+        lastTrackOriginalCount = points.length;
+        lastTrackDrawnCount = info ? info.drawn : points.length;
+        updateTrackHintText(device);
         activeDeviceId = deviceId;
         renderDeviceList();
         SaveState();
     });
+}
+
+function setTrackSpeed(multiplier) {
+    var m = parseFloat(multiplier);
+    if (!isFinite(m) || m <= 0) {
+        m = 1;
+    }
+    trackSpeedMultiplier = m;
+    map.setTrackSpeed(m);
+    $("#trackSpeed [data-speed]").removeClass("is-active")
+        .filter('[data-speed="' + m + '"]').addClass("is-active");
+    SaveState();
+    if (trackVisible && trackedDeviceId && deviceStore[trackedDeviceId]) {
+        updateTrackHintText(deviceStore[trackedDeviceId]);
+    }
+}
+
+function updateTrackHintText(device) {
+    var hint = "已加载「" + (device ? device.name : "") + "」的轨迹，共 " + lastTrackOriginalCount + " 个点";
+    if (lastTrackDrawnCount > 0 && lastTrackDrawnCount < lastTrackOriginalCount) {
+        hint += "（点较多，已抽样绘制 " + lastTrackDrawnCount + " 个点以保证流畅）";
+    }
+    var duration = map.getTrackDuration ? map.getTrackDuration() : lastTrackDuration;
+    if (duration > 0) {
+        hint += " · 动画约 " + Math.round(duration) + " 秒（" + trackSpeedMultiplier + "×）";
+    }
+    setTrackHint(hint);
 }
 
 function hideTrack() {
@@ -1202,7 +1257,8 @@ function SaveState() {
         followDevice: followDeviceId,
         routeSelected: selected,
         hidden: hidden,
-        tab: activeTab
+        tab: activeTab,
+        trackSpeed: trackSpeedMultiplier
     };
     try {
         storage.setItem(STORAGE_STATE, JSON.stringify(state));
@@ -1225,6 +1281,7 @@ function loadState() {
     activeDeviceId = state.activeDevice || null;
     followDeviceId = state.followDevice || null;
     activeTab = state.tab || "devices";
+    trackSpeedMultiplier = state.trackSpeed || 1;
     if ($.isArray(state.routeSelected)) {
         for (var i = 0; i < state.routeSelected.length; i++) {
             routeSelected[state.routeSelected[i]] = true;
@@ -1237,4 +1294,6 @@ function loadState() {
     }
     $("#backhomeMode button").removeClass("is-active")
         .filter('[data-mode="' + backhomeTrackType + '"]').addClass("is-active");
+    $("#trackSpeed [data-speed]").removeClass("is-active")
+        .filter('[data-speed="' + trackSpeedMultiplier + '"]').addClass("is-active");
 }

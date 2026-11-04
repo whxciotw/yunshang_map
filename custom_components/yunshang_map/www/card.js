@@ -12,6 +12,7 @@ var newToken = null;
 var mapInitialized = false;
 var pollTimer = null;
 var hasCentered = false;
+var hasFitted = false;
 var lastDriveTime = 0;
 
 IDLists = query.get('idlist', '');
@@ -129,6 +130,7 @@ function handleStates(states) {
     idlist = idlist.filter(function (v) { return v !== ""; });
 
     var firstCenter = null;
+    var drawnCount = 0;
     for (var index in states) {
         var stateObj = states[index];
         if (!stateObj || !stateObj.entity_id || stateObj.entity_id.indexOf("device_tracker.") !== 0) {
@@ -149,8 +151,9 @@ function handleStates(states) {
             picture: row.icon_picture,
             path: row.icon_path,
             key: row.icon_key
-        }, { cls: row.state_cls });
+        }, { cls: row.state_cls }, row.accuracy);
 
+        drawnCount++;
         if (!firstCenter) {
             firstCenter = row;
         }
@@ -165,7 +168,12 @@ function handleStates(states) {
 
     if (firstCenter && !hasCentered) {
         hasCentered = true;
-        map.center({ 'lon': firstCenter.lon, 'lat': firstCenter.lat });
+        if (drawnCount > 1) {
+            map.fitAll();
+        } else {
+            map.center({ 'lon': firstCenter.lon, 'lat': firstCenter.lat });
+        }
+        hasFitted = true;
     }
 }
 

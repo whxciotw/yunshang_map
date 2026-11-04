@@ -57,8 +57,31 @@ MapController.prototype = {
         this.getMap().center(coordinate);
     },
 
-    drawdevicemarker: function (deviceid, lableName, coordinate, icon, stateInfo) {
-        this.getMap().drawdevicemarker(deviceid, lableName, coordinate, icon, stateInfo);
+    drawdevicemarker: function (deviceid, lableName, coordinate, icon, stateInfo, accuracy) {
+        this.getMap().drawdevicemarker(deviceid, lableName, coordinate, icon, stateInfo, accuracy);
+    },
+
+    /** 适配视野：所有可见设备 + 家 */
+    fitAll: function () {
+        this.getMap().fitAll();
+    },
+
+    /** 适配视野：当前轨迹 */
+    fitTrack: function () {
+        this.getMap().fitTrack();
+    },
+
+    /** 轨迹动画速度倍率 */
+    setTrackSpeed: function (multiplier) {
+        this.getMap().setTrackSpeed(multiplier);
+    },
+
+    getTrackSpeed: function () {
+        return this.getMap().getTrackSpeed();
+    },
+
+    getTrackDuration: function () {
+        return this.getMap().getTrackDuration();
     },
 
     showdevicemarker: function (deviceid, flag) {

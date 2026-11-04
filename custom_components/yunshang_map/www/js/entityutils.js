@@ -209,6 +209,7 @@ function ysBuildDeviceRow(deviceId, stateObj) {
         name: attrs.friendly_name || deviceId,
         lon: attrs.longitude,
         lat: attrs.latitude,
+        accuracy: attrs.gps_accuracy || attrs.accuracy || 0,
         state: stateInfo.label,
         state_label: stateInfo.label,
         state_cls: stateInfo.cls,
