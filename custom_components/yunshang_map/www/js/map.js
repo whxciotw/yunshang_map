@@ -23,8 +23,9 @@ MapController.prototype = {
 
     seek: function (progress) {
         if (this.getMap().seek) {
-            this.getMap().seek(progress);
+            return this.getMap().seek(progress);
         }
+        return false;
     },
 
     getTrackProgress: function () {
@@ -63,19 +64,19 @@ MapController.prototype = {
     },
 
     DrawStart: function () {
-        this.getMap().DrawStart();
+        return this.getMap().DrawStart();
     },
 
     DrawPause: function () {
-        this.getMap().DrawPause();
+        return this.getMap().DrawPause();
     },
 
     DrawResume: function () {
-        this.getMap().DrawResume();
+        return this.getMap().DrawResume();
     },
 
     DrawStop: function () {
-        this.getMap().DrawStop();
+        return this.getMap().DrawStop();
     },
 
     center: function (coordinate) {

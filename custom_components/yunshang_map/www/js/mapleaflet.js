@@ -1170,14 +1170,16 @@ MapLeaflet.prototype = {
     seek: function (progress) {
         var anim = this.trackAnim;
         if (!anim || !anim.tracks) {
-            return;
+            return false;
         }
         progress = Math.max(0, Math.min(1, Number(progress) || 0));
         this._stopTrackAnimation();
         anim.progress = progress;
-        anim.paused = progress > 0 && progress < 1;
+        /* progress=0 也要可续播，否则 DrawResume 会因 !paused 静默失败 */
+        anim.paused = progress < 1;
         this._applyTrackProgress(anim, progress, true);
         $(document).trigger("trackProgress", [this._seekInfo(anim, progress)]);
+        return true;
     },
 
     getTrackProgress: function () {
@@ -1237,7 +1239,7 @@ MapLeaflet.prototype = {
     DrawStart: function () {
         var anim = this.trackAnim;
         if (!anim || !anim.tracks || !anim.tracks.length) {
-            return;
+            return false;
         }
         this._stopTrackAnimation();
         anim.progress = 0;
@@ -1252,33 +1254,44 @@ MapLeaflet.prototype = {
         }
         anim.running = true;
         anim.paused = false;
+        /* 立刻把进度回填给滑块，避免等第一帧时 UI 还停在 100% */
+        $(document).trigger("trackProgress", [this._seekInfo(anim, 0)]);
         this._trackFrame(anim);
+        return true;
     },
 
     DrawPause: function () {
         var anim = this.trackAnim;
         if (!anim || !anim.running) {
-            return;
+            return false;
         }
         this._stopTrackAnimation();
         anim.paused = true;
+        return true;
     },
 
     DrawResume: function () {
         var anim = this.trackAnim;
-        if (!anim || anim.running || !anim.paused) {
-            return;
+        if (!anim || !anim.tracks || !anim.tracks.length) {
+            return false;
+        }
+        if (anim.running) {
+            return true;
+        }
+        if (anim.progress >= 1) {
+            return false; /* 已到终点：交给调用方 DrawStart 从头重播 */
         }
         anim.paused = false;
         anim.running = true;
         anim.lastTs = null;
         this._trackFrame(anim);
+        return true;
     },
 
     DrawStop: function () {
         var anim = this.trackAnim;
         if (!anim) {
-            return;
+            return false;
         }
         this._stopTrackAnimation();
         anim.progress = 0;
@@ -1290,6 +1303,8 @@ MapLeaflet.prototype = {
             tr.line2.setLatLngs([]);
             tr.marker.setLatLng(tr.path[0]);
         }
+        $(document).trigger("trackProgress", [this._seekInfo(anim, 0)]);
+        return true;
     },
 
     trackplayback: function (flag) {

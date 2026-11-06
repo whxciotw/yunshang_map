@@ -284,20 +284,20 @@ function bindUi() {
         var progress = parseFloat(this.value) / 1000;
         if (playbackState === "playing") {
             map.DrawPause();
-            playbackState = "paused";
-            updatePlaybackUi();
         }
         updateRangeFill(this);
-        map.seek(progress);
-        if (progress >= 0.999) {
-            playbackState = "finished";
-            updatePlaybackUi();
-        } else if (playbackState !== "paused") {
-            playbackState = "paused";
-            updatePlaybackUi();
+        if (!map.seek(progress)) {
+            return;
         }
+        /* 拖到最右端（100%）才算 finished：停止键失效、播放键变成可从头重播 */
+        playbackState = progress >= 1 ? "finished" : "paused";
+        updatePlaybackUi();
     });
-    $("#trackSeek").on("change", function () {
+    /* 指针取消/失焦等场景可能不触发 change，一起复位，避免滑块永久冻结 */
+    $("#trackSeek").on("input pointerdown", function () {
+        seekDragging = true;
+    });
+    $("#trackSeek").on("change pointerup pointercancel blur", function () {
         seekDragging = false;
     });
     $("#btnQuery").on("click", onTrackButtonClick);
@@ -1482,7 +1482,8 @@ function updatePlaybackUi() {
     var play = $("#btnPlayPause");
     var stop = $("#btnStopPlay");
     play.text(playbackState === "playing" ? "暂停" : "播放");
-    stop.prop("disabled", playbackState === "idle");
+    /* 刚加载（idle）和播放到 100%（finished）时停止键都不可点 */
+    stop.prop("disabled", playbackState === "idle" || playbackState === "finished");
 }
 
 function resetPlaybackUi() {
@@ -1498,12 +1499,14 @@ function togglePlayPause() {
         map.DrawPause();
         playbackState = "paused";
     } else {
+        var started = false;
         if (playbackState === "paused") {
-            map.DrawResume();
-        } else {
-            map.DrawStart();
+            started = map.DrawResume();
         }
-        playbackState = "playing";
+        if (!started) {
+            started = map.DrawStart();   /* finished / idle / 引擎异常兜底：从头播放 */
+        }
+        playbackState = started ? "playing" : "paused";
     }
     updatePlaybackUi();
 }
@@ -1512,6 +1515,7 @@ function stopPlayback() {
     if (!trackVisible) {
         return;
     }
+    seekDragging = false;
     map.DrawStop();
     map.seek(0);
     resetPlaybackUi();
@@ -1572,12 +1576,12 @@ function loadSelectedTracks() {
             });
         }
         if (!tracks.length) {
+            /* 复用隐藏轨迹的清理逻辑：停动画、清旧轨迹、恢复实时标记、隐藏 seek 区 */
+            if (trackVisible) {
+                hideTrack();
+            }
             setTrackHint(t("noTrackData"), true);
             ysToast(t("noTrackData"), true);
-            trackVisible = false;
-            $("#btnQuery").text(t("trackShow"));
-            $("#playbackActions").attr("hidden", "hidden");
-            resetPlaybackUi();
             return;
         }
         map.queryMulti(tracks, true);
@@ -1591,6 +1595,7 @@ function loadSelectedTracks() {
         $("#btnQuery").text(t("trackHide"));
         $("#playbackActions").removeAttr("hidden");
         $("#seekField").removeAttr("hidden");
+        seekDragging = false;
         resetPlaybackUi();
         map.seek(0);
         var info = map.getTrackInfo ? map.getTrackInfo() : null;
@@ -1672,6 +1677,7 @@ function hideTrack() {
     trackVisible = false;
     trackedDeviceId = null;
     trackedDeviceIds = [];
+    seekDragging = false;
     resetPlaybackUi();
     $("#btnQuery").text(t("trackShow"));
     $("#playbackActions").attr("hidden", "hidden");
@@ -1924,9 +1930,13 @@ $(document).on("trackProgress", function (event, info) {
 });
 
 $(document).on("mapRebuilt", function () {
-    if (trackVisible) {
-        map.seek(0);
+    if (!trackVisible) {
+        return;
     }
+    /* 切底图会重建地图并重置引擎动画，这里同步把播放状态归零，避免状态机再次分叉 */
+    seekDragging = false;
+    map.seek(0);
+    resetPlaybackUi();
 });
 
 $(document).on("updateDrivingTime", function (event, params) {
