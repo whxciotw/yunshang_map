@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="logo.png" alt="定制地图 / Yunshang Map" width="420">
+  <img src="logo.png" alt="定制地图 / Custom Map" width="420">
 </p>
 
-# 定制地图 · Yunshang Map
+# 定制地图 · Custom Map
 
 > 从 [dscao/gaode_maps](https://github.com/dscao/gaode_maps) 分叉而来，集成域 `yunshang_map`，中文显示名统一为「定制地图」。
 

@@ -7,6 +7,14 @@
 
 ## [Unreleased]
 
+## [v1.15.0]
+
+### 变更
+
+- **品牌与显示名统一**：产品显示名统一为「定制地图 / Custom Map」。重做品牌 logo（`brand/logo.png`、`brand/dark_logo.png` 及仓库根同名文件），不再使用「云尚（高德）地图 / Yunshang Gaode Map」字样；README、Gitea 仓库描述与代码注释同步。集成域 `yunshang_map`、卡片类型 `custom:yunshang-map`、URL 与 localStorage 键均保持不变，已有安装无需迁移。
+- **维护者信息**：`manifest.json` 的 `codeowners` 改为 Gitea 账号 `yunshang`（原「云尚」不是有效账号）。
+- **清理死键**：移除 `www/js/language.js` 中未被调用的 `appName` 文案键。
+
 ## [v1.14.1]
 
 ### 修复
@@ -155,7 +163,7 @@
 
 首个定制版本（基于上游 `gaode_maps` 改造）。
 
-- **中英文名称统一**：仓库 `yunshang_map`，集成域 `yunshang_map`，中文名「云尚（高德）地图」，英文名「Yunshang Gaode Map」，侧边栏、卡片、配置流程、HACS、README 全部一致。
+- **中英文名称统一**：仓库 `yunshang_map`，集成域 `yunshang_map`，中文名「云尚（高德）地图」，英文名「Yunshang Gaode Map」，侧边栏、卡片、配置流程、HACS、README 全部一致。（v1.1.0 起前端显示名改为「定制地图」；v1.15.0 起品牌图、README 与仓库描述统一为「定制地图 / Custom Map」）
 - **三种主题模式**：新增浅色 / 深色 / 跟随系统，页面底部新增主题配置按钮，与原有缩放、路况、家、设备列表按钮并列摆放；主题选择会被记住，并同步到内嵌卡片。
 - **追踪设备优先显示图标**：地图标记优先使用 `entity_picture`，其次使用实体的 `mdi` 图标，其次按设备名称关键字推断（汽车、自行车、公交、地铁、飞机、轮船、宠物等），最后回退默认定位图标；状态用颜色区分（在家 / 离家 / 区域）。
 - **界面尽可能中文化**：EasyUI 中文语言包、设备列表、状态、按钮、提示、时间区间、错误信息等全部中文。

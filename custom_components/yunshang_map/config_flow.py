@@ -1,4 +1,4 @@
-"""云尚（高德）地图 - 配置流程。"""
+"""定制地图 - 配置流程。"""
 import logging
 from collections import OrderedDict
 
@@ -22,7 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 
 @config_entries.HANDLERS.register(DOMAIN)
 class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
-    """云尚（高德）地图 配置流程。"""
+    """定制地图 配置流程。"""
 
     VERSION = 1
 
@@ -71,7 +71,7 @@ ALL_MAP_TYPES = [item["value"] for item in MAP_TYPE_OPTIONS]
 
 
 class OptionsFlow(config_entries.OptionsFlow):
-    """云尚（高德）地图 选项流程。"""
+    """定制地图 选项流程。"""
 
     async def async_step_init(self, user_input=None):
         """管理选项。"""

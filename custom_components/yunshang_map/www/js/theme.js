@@ -1,5 +1,5 @@
 /**
- * 云尚（高德）地图 - 主题管理
+ * 定制地图 - 主题管理
  * 三种模式：浅色（light）/ 深色（dark）/ 跟随系统（auto）
  * 设置保存在 localStorage，键名 yunshang_map_theme。
  */

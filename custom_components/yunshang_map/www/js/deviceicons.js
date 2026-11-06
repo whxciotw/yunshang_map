@@ -1,5 +1,5 @@
 /**
- * 云尚（高德）地图 - 设备图标（Material Design Icons 路径数据）
+ * 定制地图 - 设备图标（Material Design Icons 路径数据）
  *
  * 地图上的追踪设备优先显示图标：先取实体的 entity_picture，
  * 其次取实体自定义的 mdi 图标，再次按设备名称关键字推断，

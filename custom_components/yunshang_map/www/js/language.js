@@ -1,12 +1,11 @@
 /**
- * 云尚（高德）地图 - 界面文案
+ * 定制地图 - 界面文案
  * 中文优先：页面默认使用简体中文，英文仅作备用。
  */
 var lang = "zh";
 
 var I18N = {
     zh: {
-        appName: "定制地图",
         loading: "加载中…",
         mapLoading: "地图加载中…",
         mapLoadFailed: "地图加载失败",
@@ -57,7 +56,6 @@ var I18N = {
         homeDevices: "在家设备",
     },
     en: {
-        appName: "Custom Map",
         loading: "Loading…",
         mapLoading: "Loading map…",
         mapLoadFailed: "Failed to load map",

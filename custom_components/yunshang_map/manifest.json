@@ -2,7 +2,7 @@
     "domain": "yunshang_map",
     "name": "定制地图",
     "codeowners": [
-        "云尚"
+        "yunshang"
     ],
     "config_flow": true,
     "dependencies": [
@@ -10,5 +10,5 @@
     ],
     "documentation": "http://192.168.19.3:3021/yunshang/yunshang_map",
     "issue_tracker": "http://192.168.19.3:3021/yunshang/yunshang_map/issues",
-    "version": "1.14.1"
+    "version": "1.15.0"
 }

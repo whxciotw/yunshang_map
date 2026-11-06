@@ -1,4 +1,4 @@
-"""云尚（高德）地图 - 在 Home Assistant 中显示高德地图与设备追踪。
+"""定制地图 - 在 Home Assistant 中显示高德地图与设备追踪。
 
 本项目基于 dscao/gaode_maps（墨澜地图）改造而来。
 """
