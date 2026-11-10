@@ -44,7 +44,6 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
-            _LOGGER.debug(user_input)
             return self.async_create_entry(title="定制地图", data=user_input)
 
         return await self._show_config_form(user_input)
@@ -86,7 +85,6 @@ class OptionsFlow(config_entries.OptionsFlow):
                 user_input["longtoken"] = ""
             config.update(user_input)
             self.hass.config_entries.async_update_entry(entry, data=config)
-            _LOGGER.debug(user_input)
             await self.hass.config_entries.async_reload(entry.entry_id)
             return self.async_create_entry(title="", data=user_input)
 

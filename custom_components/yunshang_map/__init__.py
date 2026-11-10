@@ -10,6 +10,7 @@ from homeassistant.components import websocket_api, frontend
 from homeassistant.components.http import StaticPathConfig
 
 import logging
+from urllib.parse import quote
 
 from .manifest import manifest
 
@@ -32,11 +33,11 @@ SCHEMA_WEBSOCKET = websocket_api.BASE_COMMAND_MESSAGE_SCHEMA.extend(
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    hasstoken = entry.data.get("longtoken", "")
+    hasstoken = entry.data.get("longtoken", "") or ""
     if hasstoken == "null":
         hasstoken = ""
-    gaodekey = entry.data.get("gaodekey")
-    jscode = entry.data.get("jscode")
+    gaodekey = entry.data.get("gaodekey") or ""
+    jscode = entry.data.get("jscode") or ""
     trackerids = entry.options.get("trackerids")
     if isinstance(trackerids, list):
         devicetrackeridlist = ",".join(trackerids)
@@ -67,11 +68,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config={
             "url": (
                 f"{WWW_URL_PATH}/index.html"
-                f"?hasstoken={hasstoken}"
-                f"&gaodekey={gaodekey}"
-                f"&jscode={jscode}"
-                f"&devicetrackeridlist={devicetrackeridlist}"
-                f"&maptypes={maptypelist}"
+                f"?gaodekey={quote(gaodekey, safe='')}"
+                f"&jscode={quote(jscode, safe='')}"
+                f"&devicetrackeridlist={quote(devicetrackeridlist, safe='')}"
+                f"&maptypes={quote(maptypelist, safe='')}"
                 f"&v={VERSION}"
             )
         },
@@ -81,14 +81,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.add_extra_js_url(hass, f"{WWW_URL_PATH}/map.js?v={VERSION}")
 
     def receive_data(hass, connection, msg):
-        data = msg["data"]
+        """返回面板/卡片所需的前端配置。
+
+        长期访问令牌只返回给管理员：内嵌在 HA 中的面板/卡片会复用父页面
+        会话，不需要长期令牌；非管理员拿到令牌等同于拿到管理员的 HA API。
+        """
+        data = msg.get("data") or {}
         msg_type = data.get("type", "")
         if msg_type == "gaodekey":
+            is_admin = bool(connection.user and connection.user.is_admin)
             connection.send_message(
                 websocket_api.result_message(
                     msg["id"],
                     {
-                        "hasstoken": hasstoken,
+                        "hasstoken": hasstoken if is_admin else "",
                         "gaodekey": gaodekey,
                         "jscode": jscode,
                         "maptypes": maptypelist,

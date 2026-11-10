@@ -3,11 +3,11 @@
         "step": {
             "user": {
                 "title": "定制地图",
-                "description": "高德开放平台 API 申请：https://console.amap.com/dev/key/app",
+                "description": "高德开放平台 Web 端 Key 为可选项，仅回家路线与地址反查需要，申请方式见 README。",
                 "data": {
                     "longtoken": "Home Assistant 长期访问令牌（可选；在 HA 内嵌显示会自动复用当前登录会话，仅独立浏览器打开地图页面时需要）",
                     "trackerids": "追踪设备",
-                    "gaodekey": "高德地图 Web 端 Key（可选；使用高德底图/回家路线/地址反查时需要）",
+                    "gaodekey": "高德地图 Web 端 Key（可选；仅回家路线与地址反查需要，底图与轨迹不需要）",
                     "jscode": "高德安全密钥 jscode（可选；回家路线与地址反查需要，旧的 Key 可留空）"
                 }
             }
@@ -25,7 +25,7 @@
                 "data": {
                     "longtoken": "Home Assistant 长期访问令牌（可选；在 HA 内嵌显示会自动复用当前登录会话，仅独立浏览器打开地图页面时需要）",
                     "trackerids": "追踪设备（不选择则显示所有设备）",
-                    "gaodekey": "高德地图 Web 端 Key（可选；使用高德底图/回家路线/地址反查时需要）",
+                    "gaodekey": "高德地图 Web 端 Key（可选；仅回家路线与地址反查需要，底图与轨迹不需要）",
                     "jscode": "高德安全密钥 jscode（可选；回家路线与地址反查需要，旧的 Key 可留空）",
                     "maptypes": "可用底图类型（默认全选）"
                 }

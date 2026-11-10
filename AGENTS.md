@@ -46,7 +46,7 @@ CHANGELOG.md               # 版本历史（README 不再放 changelog）
    - `custom_components/yunshang_map/manifest.json` 的 `version`
    - `www/index.html` 中所有 `?v=...`
    - `www/map.js` 的 `CARD_VERSION`
-5. **不要提交敏感信息**：令牌、高德 Key、jscode、HA 地址/密码、Gitea token 等一律不要写进仓库或文档示例里（用占位符）。
+5. **不要提交敏感信息**：令牌、高德 Key、jscode、HA 地址/密码、Gitea/GitHub token 等一律不要写进仓库或文档示例里（用占位符）。
 6. 前端脚本保持现有风格（ES5 语法、jQuery/原生 DOM 混用），与 `index.js` / `mapleaflet.js` 保持一致，不要贸然引入构建工具。
 
 ## 关键不变量（改代码前先读）
@@ -108,7 +108,8 @@ CHANGELOG.md               # 版本历史（README 不再放 changelog）
    git commit -m "feat/fix: vX.Y.Z — 摘要"
    git push origin main
    ```
-6. 在 Gitea 创建 tag/release（`vX.Y.Z`），release notes 摘要 + 指向 CHANGELOG。
+6. 在 GitHub 创建 tag/release（`vX.Y.Z`），release notes 摘要 + 指向 CHANGELOG；如同时维护 Gitea 镜像，推送 `main` 与 tag 后在建 Release。
+   - 发布后确认 GitHub Actions 的 `Hassfest` 与 `HACS Validation` 均通过（仓库页面 Actions 标签）。
 7. 部署到生产 HA 前备份旧目录；升级后强制刷新前端缓存。
 
 ## 文档维护

@@ -34,7 +34,7 @@ Home Assistant
 
 ## 两种使用形态
 
-1. **侧边栏面板**：HA 注册 iframe 面板，URL 指向 `/yunshang_map_www/index.html`，带上集成配置（令牌、Key、jscode、追踪设备、可用底图、版本号）。
+1. **侧边栏面板**：HA 注册 iframe 面板，URL 指向 `/yunshang_map_www/index.html`，带上集成配置（Key、jscode、追踪设备、可用底图、版本号）。长期令牌不再放入 URL，仅通过 WebSocket 返回给管理员会话，供卡片的独立浏览器兜底使用。
 2. **Lovelace 卡片**：`custom:yunshang-map`（`www/map.js`，LitElement）。卡片渲染一个 iframe，URL 参数与面板类似；通过 WebSocket 命令 `yunshang_map` 获取令牌/Key/可用底图，再生成 iframe。
 
 两种形态共用同一个 `index.html`，通过 `embed=1` 区分内嵌模式。

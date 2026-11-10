@@ -55,7 +55,8 @@ var LEAFLET_BASEMAPS = {
         url: "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
         subdomains: "1234",
         minZoom: 3,
-        maxZoom: 18
+        maxZoom: 18,
+        attribution: "&copy; 高德地图 AutoNavi"
     },
     "amap-satellite": {
         label: "高德卫星",
@@ -63,7 +64,8 @@ var LEAFLET_BASEMAPS = {
         url: "https://webst0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=6&x={x}&y={y}&z={z}",
         subdomains: "1234",
         minZoom: 3,
-        maxZoom: 18
+        maxZoom: 18,
+        attribution: "&copy; 高德地图 AutoNavi"
     },
     baidu: {
         label: "百度地图",
@@ -72,7 +74,8 @@ var LEAFLET_BASEMAPS = {
         subdomains: "0123",
         tms: true,
         minZoom: 4,
-        maxZoom: 18
+        maxZoom: 18,
+        attribution: "&copy; 百度地图 Baidu"
     },
     "baidu-satellite": {
         label: "百度卫星",
@@ -81,7 +84,8 @@ var LEAFLET_BASEMAPS = {
         subdomains: "0123",
         tms: true,
         minZoom: 4,
-        maxZoom: 18
+        maxZoom: 18,
+        attribution: "&copy; 百度地图 Baidu"
     },
     osm: {
         label: "OSM 地图",

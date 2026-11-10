@@ -16,7 +16,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
   const html = LitElement.prototype.html;
   const css = LitElement.prototype.css;
 
-  const CARD_VERSION = "1.15.0";
+  const CARD_VERSION = "1.15.1";
 
   const MAP_TYPES = [
     { value: "amap", label: "高德地图" },
@@ -501,6 +501,7 @@ customElements.whenDefined('ha-panel-lovelace').then(() => {
             src=${this._iframeSrc(entityIds)}
             loading="lazy"
             allow="fullscreen"
+            referrerpolicy="no-referrer"
           ></iframe>
         </div>
       `;

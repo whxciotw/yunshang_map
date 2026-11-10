@@ -13,11 +13,11 @@
 
 ### HACS 自定义存储库
 
-HACS → 集成 → 右上角菜单 → 自定义存储库，填入本仓库地址，类型选择「集成」，下载安装后重启 Home Assistant。
+HACS → 集成 → 右上角菜单 → 自定义存储库，填入 `https://github.com/whxciotw/yunshang_map`，类型选择「集成」，下载安装后重启 Home Assistant。
 
 ## 集成配置项
 
-添加集成时填写，之后可在「设置 → 设备与服务 → 定制地图 → 配置」中修改：
+添加集成时只需填「高德 Key / jscode / 长期令牌」（均可留空）；「追踪设备」「可用底图类型」在添加完成后的「设置 → 设备与服务 → 定制地图 → 配置」中设置：
 
 | 配置项 | 必填 | 说明 |
 | --- | --- | --- |
@@ -27,12 +27,13 @@ HACS → 集成 → 右上角菜单 → 自定义存储库，填入本仓库地�
 | 追踪设备 | 否 | 在「选项」中选择需要显示的 `device_tracker`；不选择则显示全部。 |
 | 可用底图类型 | 否 | 在「选项」中勾选允许展示的底图，**默认全选**。未勾选的底图不会出现在面板和卡片的下拉列表中。 |
 
-> 说明：追踪设备只针对 `device_tracker` 类型实体；`geo_location` 主要给卡片使用（见下文）。
+> 说明：追踪设备只针对 `device_tracker` 类型实体；`geo_location` 主要给卡片使用（见下文）。「追踪设备」「可用底图类型」属于集成选项，不在首次添加向导中。
 
 ### 长期令牌说明
 
 - 面板与卡片 iframe 与 HA 同源，会读取父页面的 `hass` 对象，通过 WebSocket 调用 `get_states` / `get_config` / `history/history_during_period`，因此**不需要长期令牌**。
-- 只有直接用浏览器打开 `/yunshang_map_www/index.html`（脱离 HA 页面）时，才回退到 REST API，需要长期令牌。
+- v1.15.1 起面板 iframe 的 URL **不再携带长期令牌**；令牌只会通过 WebSocket 返回给**管理员**会话（用于卡片 iframe 的独立浏览器兜底），非管理员用户拿不到。
+- 只有直接用浏览器打开 `/yunshang_map_www/index.html`（脱离 HA 页面、且浏览器中没有 HA 登录态）时，才需要令牌；可手动在 URL 上追加 `?hasstoken=...`。
 - 如果长期令牌已经失效，建议在集成配置中清空，不影响内嵌地图。
 
 ### 高德 Key / jscode 说明
@@ -59,8 +60,8 @@ HACS → 集成 → 右上角菜单 → 自定义存储库，填入本仓库地�
 ```yaml
 type: custom:yunshang-map
 entities:
-  - device_tracker.tesla_location
-  - device_tracker.es6_location
+  - device_tracker.car
+  - device_tracker.bike
 hours_to_show: 24
 default_zoom: 14
 map_type: amap

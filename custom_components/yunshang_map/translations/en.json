@@ -3,11 +3,11 @@
         "step": {
             "user": {
                 "title": "Custom Map",
-                "description": "AMap (Gaode) open platform API: https://console.amap.com/dev/key/app",
+                "description": "The AMap Web JS key is optional and only needed for home routes and address lookup; see the README for how to apply.",
                 "data": {
                     "longtoken": "Home Assistant long-lived access token (optional; embedded display reuses the current HA session, only needed when opening the map page directly)",
                     "trackerids": "Tracked devices",
-                    "gaodekey": "AMap Web JS key (optional; needed for AMap basemaps, home routes and address lookup)",
+                    "gaodekey": "AMap Web JS key (optional; only needed for home routes and address lookup, not for basemaps or tracks)",
                     "jscode": "AMap security code jscode (optional; needed for home routes and address lookup, old keys may leave it empty)"
                 }
             }
@@ -25,7 +25,7 @@
                 "data": {
                     "longtoken": "Home Assistant long-lived access token (optional; embedded display reuses the current HA session, only needed when opening the map page directly)",
                     "trackerids": "Tracked devices (show all devices when none is selected)",
-                    "gaodekey": "AMap Web JS key (optional; needed for AMap basemaps, home routes and address lookup)",
+                    "gaodekey": "AMap Web JS key (optional; only needed for home routes and address lookup, not for basemaps or tracks)",
                     "jscode": "AMap security code jscode (optional; needed for home routes and address lookup, old keys may leave it empty)",
                     "maptypes": "Allowed basemap types (default: all)"
                 }

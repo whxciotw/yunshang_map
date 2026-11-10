@@ -4,11 +4,20 @@
 
 # 定制地图 · Custom Map
 
-> 从 [dscao/gaode_maps](https://github.com/dscao/gaode_maps) 分叉而来，集成域 `yunshang_map`，中文显示名统一为「定制地图」。
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/whxciotw/yunshang_map)](https://github.com/whxciotw/yunshang_map/releases)
+[![License](https://img.shields.io/github/license/whxciotw/yunshang_map)](LICENSE)
+
+[![在 Home Assistant 中打开 HACS 仓库](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=whxciotw&repository=yunshang_map&category=integration)
 
 Home Assistant 自定义集成 + Lovelace 卡片：在 HA 中显示 `device_tracker` / `geo_location` 的位置、运动轨迹回放、回家路线与用时；支持高德、百度、OSM 底图，以及浅色 / 深色 / 跟随系统主题。
 
+> 集成域 `yunshang_map`，仓库 <https://github.com/whxciotw/yunshang_map>。
+> 本项目从 [dscao/gaode_maps](https://github.com/dscao/gaode_maps) 分叉并持续修改，修改记录见 [CHANGELOG.md](CHANGELOG.md)，按 GPL-3.0 分发。
+
 ![浅色主题](docs/preview-light.jpg)
+
+> 截图使用演示设备与演示位置（设备名已脱敏），不含真实家庭地址。
 
 ## 功能概览
 
@@ -29,11 +38,23 @@ Home Assistant 自定义集成 + Lovelace 卡片：在 HA 中显示 `device_trac
 
 ## 安装
 
+要求 **Home Assistant 2025.1 或更高版本**。
+
+### 方式一：HACS（推荐）
+
+1. 打开 **HACS → 集成**，点右上角 `⋮` → **自定义存储库**。
+2. 仓库填 `https://github.com/whxciotw/yunshang_map`，类型选 **集成**，点「添加」。
+3. 在 HACS 中搜索「定制地图」（或英文 Custom Map），安装。
+4. 重启 Home Assistant。
+5. 打开「设置 → 设备与服务 → 添加集成」，搜索「定制地图」并完成配置。
+
+### 方式二：手动安装
+
 1. 将仓库中的 `custom_components/yunshang_map` 整个目录放到 Home Assistant 的 `config/custom_components/` 下。
 2. 重启 Home Assistant。
 3. 打开「设置 → 设备与服务 → 添加集成」，搜索「定制地图」并完成配置。
 
-HACS 用户可将本仓库添加为「集成」类型的自定义存储库后安装。更多安装细节见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。
+更多安装细节见 [docs/CONFIGURATION.md](docs/CONFIGURATION.md)。升级说明见 [docs/UPGRADE.md](docs/UPGRADE.md)。
 
 ## 配置
 
@@ -43,7 +64,7 @@ HACS 用户可将本仓库添加为「集成」类型的自定义存储库后安
 | --- | --- |
 | 高德地图 Web 端 Key | 仅「回家路线 / 地址反查」需要，按需加载，不影响底图与轨迹回放 |
 | 高德安全密钥 jscode | 2021-12 之后申请的 Key 需要；留空时回家路线按钮会置灰并提示 |
-| Home Assistant 长期访问令牌 | 通常无需填写；内嵌在 HA 中会自动复用当前登录会话，仅独立浏览器打开地图页时需要 |
+| Home Assistant 长期访问令牌 | 通常无需填写；内嵌在 HA 中会自动复用当前登录会话，仅独立浏览器打开地图页时需要。v1.15.1 起面板 URL 不再携带令牌，且令牌只返回给管理员会话 |
 | 追踪设备 | 在「选项」中选择要显示的 `device_tracker`；不选则显示全部 |
 | 可用底图类型 | 在「选项」中勾选允许使用的底图，默认全选 |
 
@@ -52,8 +73,8 @@ Lovelace 卡片 YAML 示例：
 ```yaml
 type: custom:yunshang-map
 entities:
-  - device_tracker.tesla_location
-  - device_tracker.es6_location
+  - device_tracker.car
+  - device_tracker.bike
 hours_to_show: 24
 default_zoom: 14
 map_type: amap
@@ -93,7 +114,9 @@ aspect_ratio: 16:9
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 前端/后端结构、数据流、坐标系与关键实现 |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | 常见问题与排查 |
 | [docs/UPGRADE.md](docs/UPGRADE.md) | 从 `gaode_maps` 升级、版本升级与配置兼容 |
+| [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) | 内置第三方组件与许可证 |
 | [AGENTS.md](AGENTS.md) | 给 AI/开发者的仓库约定、开发与发布流程 |
+| [GitHub Issues](https://github.com/whxciotw/yunshang_map/issues) | 问题反馈与功能建议 |
 
 ## 致谢
 
@@ -104,6 +127,14 @@ aspect_ratio: 16:9
 - [Leaflet](https://leafletjs.com/) / [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) / [proj4js](https://github.com/proj4js/proj4js) / [Proj4Leaflet](https://github.com/kartena/Proj4Leaflet)：地图渲染
 - [Material Design Icons](https://pictogrammers.com/)：设备图标
 
+## 隐私说明
+
+- 本集成只读取 Home Assistant 中的 `device_tracker` / `geo_location` / 历史记录数据，不上传到本项目作者的服务器。
+- 使用高德 / 百度 / OSM 底图时，浏览器会向对应地图服务请求瓦片；「回家路线 / 地址反查」会把坐标发送给高德开放平台。
+- 长期访问令牌是可选项；v1.15.1 起不再放入面板 URL，只会通过 WebSocket 返回给管理员会话，非管理员用户无法获取。
+
 ## 许可
 
-本项目沿用上游的 [GNU General Public License v3.0](LICENSE)。
+本项目为 [dscao/gaode_maps](https://github.com/dscao/gaode_maps) 的修改版（fork），沿用上游的 [GNU General Public License v3.0](LICENSE)。
+仓库内内置的第三方组件（jQuery、Leaflet、proj4js、Material Design Icons 等）及其许可证见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+上游版权与修改声明见 [NOTICE](NOTICE.md)。

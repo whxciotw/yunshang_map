@@ -240,7 +240,7 @@ function bindUi() {
     $(document).on("dblclick", ".ys-device-row", function (event) {
         var id = $(this).attr("data-id");
         if (id) {
-            openMoreInfo("device_tracker." + id);
+            openMoreInfo(id);
         }
     });
 
@@ -1249,8 +1249,8 @@ function historyStateToPoint(n) {
         latest_report_time: attrs.latest_report_time,
         last_updated: lastUpdated,
         address: attrs.address || attrs.location_name || attrs.geocoded_location || "",
-        updatedate: (attrs.lastseen ? "最后出现：" + attrs.lastseen + "<br/>" : "") +
-            (attrs.latest_report_time ? "上报时间：" + attrs.latest_report_time + "<br/>记录时间：" : "") +
+        updatedate: (attrs.lastseen ? "最后出现：" + escapeHtml(attrs.lastseen) + "<br/>" : "") +
+            (attrs.latest_report_time ? "上报时间：" + escapeHtml(attrs.latest_report_time) + "<br/>记录时间：" : "") +
             (getDatetime(lastUpdated) ? "" + getDatetime(lastUpdated) : ""),
         lnglat: [lon, lat]
     };

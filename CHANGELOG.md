@@ -7,12 +7,33 @@
 
 ## [Unreleased]
 
+## [v1.15.1] - 2026-11-10
+
+### 安全 / 修复
+
+- **长期令牌暴露面收窄**：WebSocket 命令只向**管理员**会话返回长期访问令牌；面板 iframe 的 URL 不再携带 `hasstoken`；卡片 iframe 增加 `referrerpolicy="no-referrer"`。内嵌面板/卡片本来就复用当前登录会话，不受影响。
+- **轨迹 tooltip XSS**：`lastseen` / `latest_report_time` 等实体属性在拼接进地图 HTML 前先做转义。
+- **双击设备打开实体详情**：修复 `entity_id` 被重复拼接 `device_tracker.` 前缀导致详情打不开的问题。
+- **日志脱敏**：移除配置/选项流程中明文打印令牌与 Key 的 `_LOGGER.debug(user_input)`。
+
+### 变更（GitHub / HACS 发布准备）
+
+- **发布到 GitHub**：仓库迁移/发布到 <https://github.com/whxciotw/yunshang_map>；`manifest.json` 的 `documentation` / `issue_tracker` 改为 GitHub 地址，`codeowners` 改为 GitHub 账号 `whxciotw`。
+- **支持 HACS 安装**：补充 GitHub Release 与 `hassfest`、HACS 校验工作流；README 增加 HACS 安装说明与徽章。
+- **HACS / hassfest 合规**：`manifest.json` 增加 `iot_class`、`dependencies` 补充 `http`；`translations` 描述移除 URL；移除 HACS 校验中的 `ignore`。
+- **地图署名**：高德 / 百度底图补充版权署名（OSM 原有）。
+- **文档调整**：README 示例实体改为通用占位符；新增隐私说明与截图演示数据说明；配置文档与配置流对齐；许可章节补充第三方声明。
+- **仓库清理**：移除未被引用的 `www/easyui/`（约 1.5 MB）、6 个 `*.png.bak` 与 7 个未引用图片；完善 `.gitignore`；新增 `THIRD_PARTY_NOTICES.md` 与 `NOTICE.md`。
+- **版本号同步**：`manifest.json`、`www/map.js` 的 `CARD_VERSION`、`www/index.html` 静态资源版本统一为 `1.15.1`。
+
+> 集成域 `yunshang_map`、卡片类型 `custom:yunshang-map`、配置项与功能行为保持不变（长期令牌的获取方式除外，见上）。
+
 ## [v1.15.0]
 
 ### 变更
 
-- **品牌与显示名统一**：产品显示名统一为「定制地图 / Custom Map」。重做品牌 logo（`brand/logo.png`、`brand/dark_logo.png` 及仓库根同名文件），不再使用「云尚（高德）地图 / Yunshang Gaode Map」字样；README、Gitea 仓库描述与代码注释同步。集成域 `yunshang_map`、卡片类型 `custom:yunshang-map`、URL 与 localStorage 键均保持不变，已有安装无需迁移。
-- **维护者信息**：`manifest.json` 的 `codeowners` 改为 Gitea 账号 `yunshang`（原「云尚」不是有效账号）。
+- **品牌与显示名统一**：产品显示名统一为「定制地图 / Custom Map」。重做品牌 logo（`brand/logo.png`、`brand/dark_logo.png` 及仓库根同名文件），不再使用「云尚（高德）地图 / Yunshang Gaode Map」字样；README、仓库描述与代码注释同步。集成域 `yunshang_map`、卡片类型 `custom:yunshang-map`、URL 与 localStorage 键均保持不变，已有安装无需迁移。
+- **维护者信息**：`manifest.json` 的 `codeowners` 改为有效维护者账号（GitHub: `whxciotw`）。
 - **清理死键**：移除 `www/js/language.js` 中未被调用的 `appName` 文案键。
 
 ## [v1.14.1]
