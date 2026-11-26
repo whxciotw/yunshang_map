@@ -1132,6 +1132,7 @@ html[data-theme="dark"] .ys-floating-btn {
 /* 轨迹速度：紧凑的分段按钮 */
 .ys-speed button {
     font-size: 12px;
+    white-space: nowrap;
 }
 
 /* ---------- 主题选择面板 ---------- */

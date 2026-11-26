@@ -83,7 +83,7 @@ www/index.js  ──► deviceStore / trackSelected / 状态列表
 ### 轨迹回放
 
 - 轨迹数据按实体查询历史，生成每条轨迹的 `path`、累计距离/时间（`timeCum`）。
-- 动画用 `requestAnimationFrame` 自适应时长（约 5–20 秒），支持 0.5×–8× 倍速。
+- 动画用 `requestAnimationFrame` 自适应时长（约 5–20 秒），支持 0.25×–8× 倍速。
 - 进度按**时间轴**而不是点数计算，设备长时间静止时位置/地址也正确。
 - 拖动 seek 用二分查找定位时间点。
 - `trackSelectedOrder` 是选择状态的唯一准绳；回放时隐藏实时设备标记，只显示轨迹移动图标。
